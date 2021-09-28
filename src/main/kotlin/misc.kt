@@ -1,18 +1,25 @@
+import java.io.File
 import kotlin.math.abs
 
-fun DB.readString(size: Int): String {
-    return String(ByteArray(size) {this.readByte()})
+fun readConfig(db: DB): DBConfig {
+    val partitions = db.readInt()
+    val keySize = db.readInt()
+    val valueSize = db.readInt()
+    val defaultValue = db.readString(valueSize)
+    return DBConfig(partitions, keySize, valueSize, defaultValue)
 }
+
+fun checkIsAvailable(fileName: String): Boolean = File(fileName).let { it.canWrite() && it.canRead() }
+
+fun DB.readString(size: Int): String = String(ByteArray(size) { this.readByte() })
+
+fun getHash(str: String, config: DBConfig): Int = abs(str.hashCode()) % config.partitions
 
 fun readNode(db: DB, config: DBConfig): Node {
     val key = db.readString(config.keySize)
     val value = db.readString(config.valueSize)
     val skipToNextNode = db.readInt()
     return Node(key, value, skipToNextNode)
-}
-
-fun getHash(str: String, config: DBConfig): Int {
-    return abs(str.hashCode()) % config.partitions
 }
 
 fun DB.findNodeInChain(config: DBConfig, index: Int, key: String): Node {

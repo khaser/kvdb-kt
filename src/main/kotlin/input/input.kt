@@ -5,12 +5,12 @@ package input
 enum class Option(val longKey: String, val shortKey: String) {
     PARTITIONS("--partitions", "-p"),
     KEYS_SIZE("--keysize", "-k"),
-    VALUE_SIZE("--valuesize", "-v"),
+    VALUES_SIZE("--valuesize", "-v"),
     DEFAULT_VALUE("--default", "-d")
 }
 
 val argOptions: Set<Option> =
-    setOf(Option.DEFAULT_VALUE, Option.PARTITIONS, Option.KEYS_SIZE, Option.VALUE_SIZE)
+    setOf(Option.DEFAULT_VALUE, Option.PARTITIONS, Option.KEYS_SIZE, Option.VALUES_SIZE)
 
 val keyShortcut = Option.values().associate { Pair(it.shortKey, it.longKey) }
 val keyOption = Option.values().associateBy { it.longKey }
