@@ -1,3 +1,5 @@
+import kotlin.math.abs
+
 fun DB.readString(size: Int): String {
     return String(ByteArray(size) {this.readByte()})
 }
@@ -10,7 +12,7 @@ fun readNode(db: DB, config: DBConfig): Node {
 }
 
 fun getHash(str: String, config: DBConfig): Int {
-    return str.hashCode() % config.partitions
+    return abs(str.hashCode()) % config.partitions
 }
 
 fun DB.findNodeInChain(config: DBConfig, index: Int, key: String): Node {
