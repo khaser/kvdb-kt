@@ -1,11 +1,11 @@
 import java.io.File
 import kotlin.math.abs
 
-fun readConfig(db: DB): DBConfig {
-    val partitions = db.readInt()
-    val keySize = db.readInt()
-    val valueSize = db.readInt()
-    val defaultValue = db.readString(valueSize)
+fun DB.readConfig(): DBConfig {
+    val partitions = this.readInt()
+    val keySize = this.readInt()
+    val valueSize = this.readInt()
+    val defaultValue = this.readString(valueSize)
     return DBConfig(partitions, keySize, valueSize, defaultValue)
 }
 
@@ -15,16 +15,16 @@ fun DB.readString(size: Int): String = String(ByteArray(size) { this.readByte() 
 
 fun getHash(str: String, config: DBConfig): Int = abs(str.hashCode()) % config.partitions
 
-fun readNode(db: DB, config: DBConfig): Node {
-    val key = db.readString(config.keySize)
-    val value = db.readString(config.valueSize)
-    val skipToNextNode = db.readInt()
+fun DB.readNode(config: DBConfig): Node {
+    val key = this.readString(config.keySize)
+    val value = this.readString(config.valueSize)
+    val skipToNextNode = this.readInt()
     return Node(key, value, skipToNextNode)
 }
 
 fun DB.findNodeInChain(config: DBConfig, index: Int, key: String): Node {
     this.seek(index.toLong())
-    val curNode = readNode(this, config)
+    val curNode = this.readNode(config)
     if (curNode.nextIndex == -1) return curNode
     return if (curNode.key == key) curNode else this.findNodeInChain(config, curNode.nextIndex, key)
 }

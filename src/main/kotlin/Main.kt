@@ -4,7 +4,20 @@ import input.parseAllKeys
 import java.io.RandomAccessFile
 
 val userManual = """
-   TODO MANUAL 
+   NAME 
+       kvdb-kt - tool for creating and access lightweight data base stored in single file.
+   SYNOPSIS
+       kvdb-kt OPERATION [OPTIONS]... DB-FILE
+   OPERATIONS
+       create [OPTIONS] - make new database in DB-FILE
+       CREATE OPTIONS LIST
+           --partitions or -p NUM (Default=5000) - set number of partitions in database. As the number of partitions increases,
+                                    the memory occupied increases, but the performance improves.
+           --keysize or -k NUM (Default=255) - set maximum size of KEY field for database
+           --valuesize or -v NUM (Default=255) - set maximum size of VALUE field for database
+           --defautvalue or -d STR (Default='')- set default value for VALUE field
+       get KEY - get value by KEY in DB-FILE
+       set KEY VALUE - set VALUE by KEY in DB-FILE
 """.trimIndent()
 
 data class Node(val key: String, val value: String, val nextIndex: Int)
@@ -95,7 +108,7 @@ fun main() {
             db.initDataBase(config)
         }
         "set" -> {
-            val config = readConfig(db)
+            val config = db.readConfig()
             if (args.size < 4) {
                 println(userManual)
                 return
@@ -113,7 +126,7 @@ fun main() {
             db.setKeyValue(config, key, value)
         }
         "get" -> {
-            val config = readConfig(db)
+            val config = db.readConfig()
             if (args.size < 3) {
                 println(userManual)
                 return
