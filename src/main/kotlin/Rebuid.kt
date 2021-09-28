@@ -1,10 +1,14 @@
+fun DB.dumpAllDataBase(config: DBConfig): Map<String, String> {
+    this.seek(config.configSize.toLong())
+    val cntNodes = (this.length().toInt() - config.configSize) / config.nodeSize
+    return List(cntNodes) {
+        val node = this.readNode(config); Pair(
+        node.key.trim(),
+        node.value.trim()
+    )
+    }.filter { it.first != config.defaultValue.trim() }.toMap()
+}
 
-fun dumpAllDataBase(db: DB, config: DBConfig): Map<String, String> {
-    db.seek(config.configSize.toLong())
-    val result: MutableMap<String, String> = mutableMapOf()
-    val cntNodes = (db.length().toInt() - config.configSize) / config.nodeSize
-    repeat(cntNodes) {
-        val node = db.readNode(config)
-    }
-    return result
+fun DB.shrink(config: DBConfig) {
+
 }

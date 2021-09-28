@@ -18,6 +18,7 @@ val userManual = """
            --defautvalue or -d STR (Default='')- set default value for VALUE field
        get KEY - get value by KEY in DB-FILE
        set KEY VALUE - set VALUE by KEY in DB-FILE
+       dump - print all database in format KEY=VALUE
 """.trimIndent()
 
 data class Node(val key: String, val value: String, val nextIndex: Int)
@@ -137,6 +138,9 @@ fun main() {
                 return
             }
             println(db.getKeyValue(config, key))
+        }
+        "dump" -> {
+            db.dumpAllDataBase(db.readConfig()).forEach { println(it) }
         }
         else -> {
             println(userManual)
