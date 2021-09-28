@@ -1,5 +1,6 @@
 import input.Option
 import java.io.RandomAccessFile
+import java.nio.file.Files
 import input.parseAllKeys
 
 val userManual = """
@@ -58,8 +59,10 @@ fun DB.setKeyValue(config: DBConfig, key: String, value: String) {
     }
 }
 
+
 fun main() {
     val args = readLine()!!.split(' ')
+    //Primary check
     if (args.size < 2) {
         println("You must input at least mode and data base file")
         println(userManual)
@@ -67,6 +70,8 @@ fun main() {
     }
     val mode = args[0]
     val file = args.last()
+//    if (mode != "create" && Files.isReadable(pfile)) {
+//    }
     val db = DB(file, "rw")
 
     when (mode) {
@@ -75,7 +80,7 @@ fun main() {
             val partitions = modificators[Option.PARTITIONS]?.toInt() ?: 5000
             val keySize = modificators[Option.KEYS_SIZE]?.toInt() ?: 255
             val valueSize = modificators[Option.VALUE_SIZE]?.toInt() ?: 255
-            val defaultValue = modificators[Option.DEFAULT_VALUE] ?: "".padEnd(valueSize)
+            val defaultValue = (modificators[Option.DEFAULT_VALUE] ?: "").padEnd(valueSize)
             val config = DBConfig(partitions, keySize, valueSize, defaultValue)
             db.setLength(0);
             db.initDataBase(config)

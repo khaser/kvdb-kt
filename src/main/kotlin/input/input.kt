@@ -6,7 +6,7 @@ enum class Option(val longKey: String, val shortKey: String) {
     PARTITIONS("--partitions", "-p"),
     KEYS_SIZE("--keysize", "-k"),
     VALUE_SIZE("--valuesize", "-v"),
-    DEFAULT_VALUE("--default", "-e")
+    DEFAULT_VALUE("--default", "-d")
 }
 
 val argOptions: Set<Option> =

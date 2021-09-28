@@ -24,8 +24,7 @@ fun DB.findNodeInChain(config: DBConfig, index: Int, key: String): Node {
 
 fun DB.writeNode(config: DBConfig, node: Node) {
     this.writeBytes(node.key)
-    this.writeBytes(node.value.padEnd(config.keySize, ' '))
+    this.writeBytes(node.value.padEnd(config.valueSize, ' '))
     this.writeInt(node.nextIndex)
     this.seek(this.filePointer - config.nodeSize)
 }
-
