@@ -78,8 +78,7 @@ fun DB.setKeyValue(config: DBConfig, key: String, value: String) {
 }
 
 
-fun main() {
-    val args = readLine()!!.split(' ')
+fun main(args: Array<String>) {
     //Primary check
     if (args.size < 2) {
         println("You must input at least mode and data base file")
@@ -123,6 +122,7 @@ fun main() {
                 println("Aborting. Value length must not be more, than value size")
                 return
             }
+            if (args.size != 4) println("Warning!!! Skipped next keys ${args.slice(3 until args.size - 1)}")
             db.setKeyValue(config, key, value)
         }
         "get" -> {
@@ -136,9 +136,11 @@ fun main() {
                 println("Aborting. Key length must not be more, than key size")
                 return
             }
+            if (args.size != 3) println("Warning!!! Skipped next keys ${args.slice(2 until args.size - 1)}")
             println(db.getKeyValue(config, key))
         }
         "dump" -> {
+            if (args.size != 2) println("Warning!!! Skipped next keys ${args.slice(1 until args.size - 1)}")
             db.dumpAllDataBase(db.readConfig()).forEach { println(it) }
         }
         "shrink" -> {
@@ -147,6 +149,7 @@ fun main() {
             db.shrink(config, newConfig)
         }
         "config" -> {
+            if (args.size != 2) println("Warning!!! Skipped next keys ${args.slice(1 until args.size - 1)}")
             db.readConfig().also { println(it.copy(defaultValue = "'" + it.defaultValue.trim() + "'")) }
         }
         else -> {
