@@ -51,7 +51,7 @@ fun DB.getKeyValue(config: DBConfig, key: String): String {
     key.padEnd(config.keySize, ' ').also {
         val beginOfChain = getHash(it, config) * config.nodeSize + config.configSize
         val node = this.findNodeInChain(config, beginOfChain, it)
-        return if (it == node.key) node.value else config.defaultValue
+        return (if (it == node.key) node.value else config.defaultValue).trim()
     }
 }
 
