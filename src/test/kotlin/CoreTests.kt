@@ -141,4 +141,3 @@ internal class RebuildTests {
         File("$testDir/shrinkTest.db").delete()
     }
 }
-

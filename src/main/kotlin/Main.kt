@@ -24,7 +24,9 @@ val userManual = """
        config - print database configuration
 """.trimIndent()
 
+/** Class for storing entry in DB */
 data class Node(val key: String, val value: String, val nextIndex: Int)
+/** Class for first N DB bytes for configuring DB structure*/
 data class DBConfig(
     val partitions: Int, val keySize: Int, val valueSize: Int, val defaultValue: String,
     val nodeSize: Int = keySize + valueSize + Int.SIZE_BYTES,
@@ -34,6 +36,7 @@ data class DBConfig(
 typealias DB = RandomAccessFile
 typealias Options = Map<Option, String>
 
+/** Write config to database and init every partition by void node*/
 fun DB.initDataBase(config: DBConfig) {
     this.setLength(0)
     this.writeInt(config.partitions)
@@ -47,18 +50,20 @@ fun DB.initDataBase(config: DBConfig) {
     }
 }
 
+/** Find partition and print node by key*/
 fun DB.getKeyValue(config: DBConfig, key: String): String {
     key.padEnd(config.keySize, ' ').also {
         val beginOfChain = getHash(it, config) * config.nodeSize + config.configSize
-        val node = this.findNodeInChain(config, beginOfChain, it)
+        val node = this.findNodeInPartition(config, beginOfChain, it)
         return (if (it == node.key) node.value else config.defaultValue).trim()
     }
 }
 
+/** Find partition and change node by key*/
 fun DB.setKeyValue(config: DBConfig, key: String, value: String) {
     val fullKey = key.padEnd(config.keySize)
     val beginOfChain = getHash(fullKey, config) * config.nodeSize + config.configSize
-    val node = this.findNodeInChain(config, beginOfChain, fullKey)
+    val node = this.findNodeInPartition(config, beginOfChain, fullKey)
     if (node.key == fullKey) {
         //Change existing key
         this.seek(this.filePointer - config.nodeSize)

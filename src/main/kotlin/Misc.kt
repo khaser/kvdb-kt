@@ -1,6 +1,7 @@
 import java.io.File
 import kotlin.math.abs
 
+/** Read DBConfig from first N bytes of DB file */
 fun DB.readConfig(): DBConfig {
     val partitions = this.readInt()
     val keySize = this.readInt()
@@ -9,12 +10,16 @@ fun DB.readConfig(): DBConfig {
     return DBConfig(partitions, keySize, valueSize, defaultValue)
 }
 
-fun checkIsAvailable(fileName: String): Boolean = File(fileName).let { it.canWrite() && it.canRead() }
+/** Check permissions for write and read from DB FILE */
+fun checkIsAvailable(fileName: String) = File(fileName).let { it.canWrite() && it.canRead() }
 
-fun DB.readString(size: Int): String = String(ByteArray(size) { this.readByte() })
+/** Read N bytes from DB under cursor */
+fun DB.readString(size: Int) = String(ByteArray(size) { this.readByte() })
 
-fun getHash(str: String, config: DBConfig): Int = abs(str.hashCode()) % config.partitions
+/** Calculate partition number for string */
+fun getHash(str: String, config: DBConfig) = abs(str.hashCode()) % config.partitions
 
+/** Read all node from DB under cursor*/
 fun DB.readNode(config: DBConfig): Node {
     val key = this.readString(config.keySize)
     val value = this.readString(config.valueSize)
@@ -22,13 +27,15 @@ fun DB.readNode(config: DBConfig): Node {
     return Node(key, value, skipToNextNode)
 }
 
-fun DB.findNodeInChain(config: DBConfig, index: Int, key: String): Node {
+/** Find node by key and partition index in DB */
+fun DB.findNodeInPartition(config: DBConfig, index: Int, key: String): Node {
     this.seek(index.toLong())
     val curNode = this.readNode(config)
     if (curNode.nextIndex == -1) return curNode
-    return if (curNode.key == key) curNode else this.findNodeInChain(config, curNode.nextIndex, key)
+    return if (curNode.key == key) curNode else this.findNodeInPartition(config, curNode.nextIndex, key)
 }
 
+/** Overwrite node under cursor in DB */
 fun DB.writeNode(config: DBConfig, node: Node) {
     this.writeBytes(node.key)
     this.writeBytes(node.value.padEnd(config.valueSize, ' '))

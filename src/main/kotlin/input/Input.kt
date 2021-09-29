@@ -1,7 +1,7 @@
 package input
 
-import Options
 import DBConfig
+import Options
 import kotlin.system.exitProcess
 
 /** keys - strings like --help; args - string after keys */
@@ -19,7 +19,7 @@ val argOptions: Set<Option> =
 val keyShortcut = Option.values().associate { Pair(it.shortKey, it.longKey) }
 val keyOption = Option.values().associateBy { it.longKey }
 
-/** Parse all user input, main function of package*/
+/** Parse all user input, main function of package */
 fun parseAllKeys(args: List<String>): Options {
     val result: MutableMap<Option, String> = mutableMapOf()
     //Cast all short keys to long keys
@@ -29,7 +29,7 @@ fun parseAllKeys(args: List<String>): Options {
 }
 
 
-/** Function for parsing options with argument like --width 100*/
+/** Function for parsing options with argument like --width 100 */
 private fun parseKeysWithArgs(args: ArrayList<String>, result: MutableMap<Option, String>) {
     val dropped: MutableList<String> = mutableListOf()
     while (args.isNotEmpty()) {
@@ -63,4 +63,3 @@ fun Options.toConfig(): DBConfig {
     }
     return DBConfig(partitions, keySize, valueSize, defaultValue)
 }
-

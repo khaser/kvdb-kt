@@ -1,3 +1,4 @@
+/** Implementation for dump option. Reads all partitions node by node in memory order*/
 fun DB.dumpAllDataBase(config: DBConfig): Map<String, String> {
     this.seek(config.configSize.toLong())
     val cntNodes = (this.length().toInt() - config.configSize) / config.nodeSize
@@ -9,6 +10,7 @@ fun DB.dumpAllDataBase(config: DBConfig): Map<String, String> {
     }.filter { it.first != config.defaultValue.trim() }.toMap()
 }
 
+/** Dump all DB and recreate DB by adding all entries with new config*/
 fun DB.shrink(config: DBConfig, newConfig: DBConfig) {
     val dump = this.dumpAllDataBase(config)
     this.initDataBase(newConfig)
