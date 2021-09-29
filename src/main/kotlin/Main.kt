@@ -1,6 +1,7 @@
 //Loop count challenge; while - 1; for - 0
 import input.Option
 import input.parseAllKeys
+import input.toConfig
 import java.io.RandomAccessFile
 
 val userManual = """
@@ -19,6 +20,8 @@ val userManual = """
        get KEY - get value by KEY in DB-FILE
        set KEY VALUE - set VALUE by KEY in DB-FILE
        dump - print all database in format KEY=VALUE
+       shrink [OPTIONS] - change your database configuration with options matching 'create'
+       config - print database configuration
 """.trimIndent()
 
 data class Node(val key: String, val value: String, val nextIndex: Int)
@@ -29,8 +32,10 @@ data class DBConfig(
 )
 
 typealias DB = RandomAccessFile
+typealias Options = Map<Option, String>
 
 fun DB.initDataBase(config: DBConfig) {
+    this.setLength(0)
     this.writeInt(config.partitions)
     this.writeInt(config.keySize)
     this.writeInt(config.valueSize)
@@ -95,18 +100,7 @@ fun main() {
     //Different actions for each mode
     when (mode) {
         "create" -> {
-            val options = parseAllKeys(args.slice(1 until args.size - 1))
-            val partitions = options[Option.PARTITIONS]?.toInt() ?: 5000
-            val keySize = options[Option.KEYS_SIZE]?.toInt() ?: 255
-            val valueSize = options[Option.VALUES_SIZE]?.toInt() ?: 255
-            val defaultValue = (options[Option.DEFAULT_VALUE] ?: "").padEnd(valueSize)
-            if (defaultValue.length != valueSize) {
-                println("Aborting. Default value length must not be more, than value size.")
-                return
-            }
-            val config = DBConfig(partitions, keySize, valueSize, defaultValue)
-            db.setLength(0);
-            db.initDataBase(config)
+            parseAllKeys(args.slice(1 until args.size - 1)).toConfig().let { db.initDataBase(it) }
         }
         "set" -> {
             val config = db.readConfig()
@@ -141,6 +135,14 @@ fun main() {
         }
         "dump" -> {
             db.dumpAllDataBase(db.readConfig()).forEach { println(it) }
+        }
+        "shrink" -> {
+            val config = db.readConfig()
+            val newConfig = parseAllKeys(args.slice(1 until args.size - 1)).toConfig()
+            db.shrink(config, newConfig)
+        }
+        "config" -> {
+            db.readConfig().also { println(it.copy(defaultValue = "'" + it.defaultValue.trim() + "'")) }
         }
         else -> {
             println(userManual)

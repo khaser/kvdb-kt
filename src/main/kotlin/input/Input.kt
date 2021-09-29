@@ -1,5 +1,9 @@
 package input
 
+import Options
+import DBConfig
+import kotlin.system.exitProcess
+
 /** keys - strings like --help; args - string after keys */
 
 enum class Option(val longKey: String, val shortKey: String) {
@@ -16,7 +20,7 @@ val keyShortcut = Option.values().associate { Pair(it.shortKey, it.longKey) }
 val keyOption = Option.values().associateBy { it.longKey }
 
 /** Parse all user input, main function of package*/
-fun parseAllKeys(args: List<String>): Map<Option, String> {
+fun parseAllKeys(args: List<String>): Options {
     val result: MutableMap<Option, String> = mutableMapOf()
     //Cast all short keys to long keys
     val normalizedArgs = args.map { keyShortcut[it] ?: it }
@@ -47,3 +51,16 @@ private fun parseKeysWithArgs(args: ArrayList<String>, result: MutableMap<Option
     }
     if (dropped.isNotEmpty()) println("Was ignored next keys: ${dropped.joinToString(" ")}")
 }
+
+fun Options.toConfig(): DBConfig {
+    val partitions = this[Option.PARTITIONS]?.toInt() ?: 5000
+    val keySize = this[Option.KEYS_SIZE]?.toInt() ?: 255
+    val valueSize = this[Option.VALUES_SIZE]?.toInt() ?: 255
+    val defaultValue = (this[Option.DEFAULT_VALUE] ?: "").padEnd(valueSize)
+    if (defaultValue.length != valueSize) {
+        println("Aborting. Default value length must not be more, than value size.")
+        exitProcess(0)
+    }
+    return DBConfig(partitions, keySize, valueSize, defaultValue)
+}
+

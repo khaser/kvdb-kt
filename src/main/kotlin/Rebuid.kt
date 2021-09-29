@@ -9,6 +9,8 @@ fun DB.dumpAllDataBase(config: DBConfig): Map<String, String> {
     }.filter { it.first != config.defaultValue.trim() }.toMap()
 }
 
-fun DB.shrink(config: DBConfig) {
-
+fun DB.shrink(config: DBConfig, newConfig: DBConfig) {
+    val dump = this.dumpAllDataBase(config)
+    this.initDataBase(newConfig)
+    dump.forEach { this.setKeyValue(newConfig, it.key, it.value) }
 }
