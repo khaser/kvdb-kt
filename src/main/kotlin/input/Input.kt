@@ -1,7 +1,6 @@
 package input
 
 import DBConfig
-import Options
 import kotlin.system.exitProcess
 
 /** keys - strings like --help; args - string after keys */
@@ -13,27 +12,26 @@ enum class Option(val longKey: String, val shortKey: String) {
     DEFAULT_VALUE("--default", "-d")
 }
 
-val argOptions: Set<Option> =
-    setOf(Option.DEFAULT_VALUE, Option.PARTITIONS, Option.KEYS_SIZE, Option.VALUES_SIZE)
+typealias Options = Map<Option, String>
 
+val optionsWithIntegerArg = setOf(Option.PARTITIONS, Option.KEYS_SIZE, Option.VALUES_SIZE)
 val keyShortcut = Option.values().associate { Pair(it.shortKey, it.longKey) }
 val keyOption = Option.values().associateBy { it.longKey }
 
 /** Parse all user input, main function of package */
-fun parseAllKeys(args: List<String>): Options {
-    val result: MutableMap<Option, String> = mutableMapOf()
+fun parseUserInput(args: List<String>): Options {
     //Cast all short keys to long keys
     val normalizedArgs = args.map { keyShortcut[it] ?: it }
-    parseKeysWithArgs(normalizedArgs as ArrayList<String>, result)
-    return result
+    return parseKeysWithArgs(normalizedArgs as MutableList<String>)
 }
 
 
-/** Function for parsing options with argument like --width 100 */
-private fun parseKeysWithArgs(args: ArrayList<String>, result: MutableMap<Option, String>) {
+/** Function for parsing options with argument like --partitions 100 */
+private fun parseKeysWithArgs(args: MutableList<String>): MutableMap<Option, String> {
+    val result: MutableMap<Option, String> = mutableMapOf()
     val dropped: MutableList<String> = mutableListOf()
     while (args.isNotEmpty()) {
-        dropped.addAll(args.takeWhile { !argOptions.contains(keyOption[it]) }
+        dropped.addAll(args.takeWhile { !keyOption.containsKey(it) }
             .also { repeat(it.size) { args.removeFirst() } })
         if (args.isEmpty()) break
         if (args.size == 1) {
@@ -41,15 +39,18 @@ private fun parseKeysWithArgs(args: ArrayList<String>, result: MutableMap<Option
             dropped.add(args[0])
             break
         }
-        with(keyOption[args[0]]!!) {
-            if (result.containsKey(this)) {
-                println("Warning!!! Redeclaration of option ${args[0]}")
-            }
-            result[this] = args[1]
-            repeat(2) { args.removeFirst() }
+        val option = keyOption[args[0]]
+        requireNotNull(option)
+        if (optionsWithIntegerArg.contains(option) && args[1].toIntOrNull() == null) {
+            dropped.add(args.removeFirst())
+            continue
         }
+        if (result.containsKey(option)) println("Warning!!! Redeclaration of option ${args[0]}")
+        result[option] = args[1]
+        repeat(2) { args.removeFirst() }
     }
     if (dropped.isNotEmpty()) println("Was ignored next keys: ${dropped.joinToString(" ")}")
+    return result
 }
 
 fun Options.toConfig(): DBConfig {
