@@ -1,7 +1,7 @@
 //Loop count challenge; while - 1; for - 0
-import input.Option
-import input.parseAllKeys
+import input.parseUserInput
 import input.toConfig
+import java.io.File
 import java.io.RandomAccessFile
 
 val userManual = """
@@ -26,15 +26,20 @@ val userManual = """
 
 /** Class for storing entry in DB */
 data class Node(val key: String, val value: String, val nextIndex: Int)
+
 /** Class for first N DB bytes for configuring DB structure*/
 data class DBConfig(
-    val partitions: Int, val keySize: Int, val valueSize: Int, val defaultValue: String,
-    val nodeSize: Int = keySize + valueSize + Int.SIZE_BYTES,
-    val configSize: Int = 3 * Int.SIZE_BYTES + defaultValue.length
-)
+    val partitions: Int = 100,
+    val keySize: Int = 255,
+    val valueSize: Int = 255,
+    val defaultValue: String = "".padEnd(valueSize)
+) {
+    private val cntIntInHeader = 3
+    val nodeSize: Int = keySize + valueSize + Int.SIZE_BYTES
+    val configSize: Int = cntIntInHeader * Int.SIZE_BYTES + defaultValue.length
+}
 
 typealias DB = RandomAccessFile
-typealias Options = Map<Option, String>
 
 /** Write config to database and init every partition by void node*/
 fun DB.initDataBase(config: DBConfig) {
@@ -50,12 +55,12 @@ fun DB.initDataBase(config: DBConfig) {
     }
 }
 
-/** Find partition and print node by key*/
+/** Find partition and return node value by key*/
 fun DB.getKeyValue(config: DBConfig, key: String): String {
     key.padEnd(config.keySize, ' ').also {
         val beginOfChain = getHash(it, config) * config.nodeSize + config.configSize
         val node = this.findNodeInPartition(config, beginOfChain, it)
-        return (if (it == node.key) node.value else config.defaultValue).trim()
+        return (node?.value ?: config.defaultValue).trim()
     }
 }
 
@@ -64,21 +69,24 @@ fun DB.setKeyValue(config: DBConfig, key: String, value: String) {
     val fullKey = key.padEnd(config.keySize)
     val beginOfChain = getHash(fullKey, config) * config.nodeSize + config.configSize
     val node = this.findNodeInPartition(config, beginOfChain, fullKey)
-    if (node.key == fullKey) {
+    if (node != null) {
         //Change existing key
         this.seek(this.filePointer - config.nodeSize)
         this.writeNode(config, Node(fullKey, value, node.nextIndex))
     } else {
         //Create new key
         this.seek(this.filePointer - config.nodeSize)
-        this.writeNode(config, Node(node.key, node.value, this.length().toInt()))
+        this.writeNode(config, Node(fullKey, value, this.length().toInt()))
         this.seek(this.length())
-        this.writeNode(config, Node(fullKey, value, -1))
+        this.writeNode(config, Node("", config.defaultValue, -1))
     }
 }
 
+/** Check permissions for write and read from DB FILE */
+fun checkIsAvailable(fileName: String) = File(fileName).let { it.canWrite() && it.canRead() }
 
 fun main(args: Array<String>) {
+//    val args = readLine()!!.split(' ')
     //Primary check
     if (args.size < 2) {
         println("You must input at least mode and data base file")
@@ -104,7 +112,7 @@ fun main(args: Array<String>) {
     //Different actions for each mode
     when (mode) {
         "create" -> {
-            parseAllKeys(args.slice(1 until args.size - 1)).toConfig().let { db.initDataBase(it) }
+            parseUserInput(args.slice(1 until args.size - 1)).toConfig().let { db.initDataBase(it) }
         }
         "set" -> {
             val config = db.readConfig()
@@ -145,7 +153,7 @@ fun main(args: Array<String>) {
         }
         "shrink" -> {
             val config = db.readConfig()
-            val newConfig = parseAllKeys(args.slice(1 until args.size - 1)).toConfig()
+            val newConfig = parseUserInput(args.slice(1 until args.size - 1)).toConfig()
             db.shrink(config, newConfig)
         }
         "config" -> {

@@ -10,9 +10,6 @@ fun DB.readConfig(): DBConfig {
     return DBConfig(partitions, keySize, valueSize, defaultValue)
 }
 
-/** Check permissions for write and read from DB FILE */
-fun checkIsAvailable(fileName: String) = File(fileName).let { it.canWrite() && it.canRead() }
-
 /** Read N bytes from DB under cursor */
 fun DB.readString(size: Int) = String(ByteArray(size) { this.readByte() })
 
@@ -28,16 +25,16 @@ fun DB.readNode(config: DBConfig): Node {
 }
 
 /** Find node by key and partition index in DB */
-fun DB.findNodeInPartition(config: DBConfig, index: Int, key: String): Node {
+fun DB.findNodeInPartition(config: DBConfig, index: Int, key: String): Node? {
     this.seek(index.toLong())
     val curNode = this.readNode(config)
-    if (curNode.nextIndex == -1) return curNode
+    if (curNode.nextIndex == -1) return null
     return if (curNode.key == key) curNode else this.findNodeInPartition(config, curNode.nextIndex, key)
 }
 
 /** Overwrite node under cursor in DB */
 fun DB.writeNode(config: DBConfig, node: Node) {
-    this.writeBytes(node.key)
+    this.writeBytes(node.key.padEnd(config.keySize, ' '))
     this.writeBytes(node.value.padEnd(config.valueSize, ' '))
     this.writeInt(node.nextIndex)
     this.seek(this.filePointer - config.nodeSize)
