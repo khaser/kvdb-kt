@@ -6,9 +6,9 @@ fun checkArgsCount(args: Array<String>): Unit? {
         println(Msg.MISSED_ARGUMENTS, listOf("mode", "DBFile")); return null
     }
     when (args[0]) {
-        "get" -> {
+        "get", "remove" -> {
             if (args.size < 3) {
-                println(Msg.MISSED_ARGUMENTS, listOf("get", "key", "DBFile"))
+                println(Msg.MISSED_ARGUMENTS, listOf(args[0], "key", "DBFile"))
                 return null
             }
             if (args.size != 3) println(Msg.MISSED_ARGUMENTS, args.slice(2 until args.size - 1))

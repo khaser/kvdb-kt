@@ -18,6 +18,7 @@ val userManual = """
            --defautvalue or -d STR (Default='')- set default value for VALUE field
        get KEY - get value by KEY in DB-FILE
        set KEY VALUE - set VALUE by KEY in DB-FILE
+       remove KEY - delete key from database
        dump - print all database in format KEY=VALUE
        shrink [OPTIONS] - change your database configuration with options matching 'create'
        config - print database configuration
@@ -55,6 +56,10 @@ fun main() {
         "get" -> {
             val key = args[1]
             println(db.getKeyValue(key))
+        }
+        "remove" -> {
+            val key = args[1]
+            db.removeKey(key)
         }
         "dump" -> {
             db.dumpAllDataBase().forEach { println(it) }
