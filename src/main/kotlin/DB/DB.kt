@@ -1,5 +1,6 @@
+package DB
+
 import input.Options
-import input.toDBConfig
 import output.Msg
 import output.println
 import java.io.EOFException
@@ -7,44 +8,6 @@ import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 
-fun saveOpenDB(fileName: String): DB? {
-    val file = File(fileName)
-    return if (file.exists()) {
-        if (file.canWrite() && file.canRead()) {
-            try { DB(fileName) } catch (error: Exception) { return null }
-        } else {
-            println(Msg.FILE_NOT_AVAILABLE, fileName); null
-        }
-    } else {
-        println(Msg.FILE_NOT_EXIST, fileName); null
-    }
-}
-
-/** Write config to database and init every partition by void node*/
-fun initDataBase(fileName: String, options: Options): DB? = initDataBase(fileName, options.toDBConfig())
-fun initDataBase(fileName: String, config: DB.Config): DB? {
-    val blankDB = File(fileName)
-    if (blankDB.exists()) {
-        if (blankDB.canRead() && blankDB.canWrite()) {
-            println(Msg.FILE_ALREADY_EXISTS, fileName)
-            if ((readLine() ?: "n").uppercase() != "Y") return null else blankDB.delete()
-        } else {
-            println(Msg.FILE_NOT_AVAILABLE, fileName); return null
-        }
-    }
-    val db = DB(fileName, config)
-    db.setLength(0)
-    db.writeInt(config.partitions)
-    db.writeInt(config.keySize)
-    db.writeInt(config.valueSize)
-    db.writeBytes(config.defaultValue)
-    repeat(config.partitions) {
-        db.writeBytes("".padEnd(config.keySize))
-        db.writeBytes(config.defaultValue)
-        db.writeInt(-1)
-    }
-    return db
-}
 
 /** Dump all DB and return new DB by adding all entries with new config
  *  Warning! Old DB is becoming outdated*/
@@ -58,23 +21,23 @@ fun DB.shrink(options: Options): DB {
     return newDB
 }
 
+data class Config(
+    val partitions: Int = 100,
+    val keySize: Int = 255,
+    val valueSize: Int = 255,
+    val defaultValue: String = "".padEnd(valueSize)
+) {
+    private val cntIntInHeader = 3
+    val nodeSize: Int = keySize + valueSize + Int.SIZE_BYTES
+    val configSize: Int = cntIntInHeader * Int.SIZE_BYTES + defaultValue.length
+}
+
 class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fileName, "rw") {
 
     /** Class for storing entry in DB */
     data class Node(val key: String, val value: String, val nextIndex: Int)
 
     /** Class for first N DB bytes for configuring DB structure*/
-    data class Config(
-        val partitions: Int = 100,
-        val keySize: Int = 255,
-        val valueSize: Int = 255,
-        val defaultValue: String = "".padEnd(valueSize)
-    ) {
-        private val cntIntInHeader = 3
-        val nodeSize: Int = keySize + valueSize + Int.SIZE_BYTES
-        val configSize: Int = cntIntInHeader * Int.SIZE_BYTES + defaultValue.length
-    }
-
     val config = newConfig ?: readConfig() ?: throw Exception("DamagedFile")
 
     /** Find partition and return node value by key*/

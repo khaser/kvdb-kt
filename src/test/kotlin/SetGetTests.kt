@@ -1,5 +1,6 @@
 import java.io.File
 import kotlin.test.*
+import DB.*
 
 internal class SetGetTests {
 
@@ -17,7 +18,7 @@ internal class SetGetTests {
 
     @Test
     fun getAfterSet() {
-        val config = DB.Config(3, 11, 15, "HEH".padEnd(15))
+        val config = Config(3, 11, 15, "HEH".padEnd(15))
         val db = initDataBase("$testDir/setGetTests.db", config)
         requireNotNull(db)
         val requests = mapOf(
@@ -50,20 +51,20 @@ internal class SetGetTests {
 
     @Test
     fun stressTest1000Partitions() {
-        mixedGetSet(DB.Config(1000, 25, 25, "DEFAULT".padEnd(25)))
+        mixedGetSet(Config(1000, 25, 25, "DEFAULT".padEnd(25)))
     }
 
     @Test
     fun stressTest100Partitions() {
-        mixedGetSet(DB.Config(100, 25, 25, "ANOTHER DEFAULT".padEnd(25)))
+        mixedGetSet(Config(100, 25, 25, "ANOTHER DEFAULT".padEnd(25)))
     }
 
     @Test
     fun stressTest10Partitions() {
-        mixedGetSet(DB.Config(10, 25, 25, "one more default".padEnd(25)))
+        mixedGetSet(Config(10, 25, 25, "one more default".padEnd(25)))
     }
 
-    private fun mixedGetSet(config: DB.Config) {
+    private fun mixedGetSet(config: Config) {
         val db = initDataBase(fileName, config)
         requireNotNull(db)
         val solver: MutableMap<String, String> = mutableMapOf()

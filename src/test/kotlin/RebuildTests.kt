@@ -1,10 +1,8 @@
 import input.Option
 import input.Options
-import output.Msg
-import java.io.ByteArrayOutputStream
+import DB.*
 import kotlin.test.*
 import java.io.File
-import java.io.PrintStream
 
 internal class RebuildTests {
 
@@ -26,7 +24,7 @@ internal class RebuildTests {
             Option.PARTITIONS to "5",
             Option.KEYS_SIZE to "100",
             Option.VALUES_SIZE to "100",
-            Option.DEFAULT_VALUE to db.config!!.defaultValue.padEnd(100)
+            Option.DEFAULT_VALUE to db.config.defaultValue.padEnd(100)
         )
         db = db.shrink(options)
         val correct = File("$testDir/correct.dump").readLines().toString().let {

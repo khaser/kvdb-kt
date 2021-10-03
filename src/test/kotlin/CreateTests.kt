@@ -1,6 +1,7 @@
 import kotlin.test.*
 import input.*
 import output.*
+import DB.*
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
