@@ -1,6 +1,9 @@
 //Loop count challenge; while - 1; for - 0
 import input.parseUserInput
+import input.checkArgsCount
 import java.io.File
+import output.*
+import java.io.IOException
 
 val userManual = """
    NAME 
@@ -22,62 +25,27 @@ val userManual = """
        config - print database configuration
 """.trimIndent()
 
-/** Check permissions for write and read from DB FILE */
-fun checkIsAvailable(fileName: String) = File(fileName).let { it.canWrite() && it.canRead() }
-
 //fun main(args: Array<String>) {
 fun main() {
-    val args = readLine()!!.split(' ')
+    val args = readLine()!!.split(' ').toTypedArray()
     //Is help call check
     if (args.contains("-h") || args.contains("--help")) {
         println(userManual); return
     }
-    //Primary check
-    if (args.size < 2) {
-        println(Msg.MISSED_ARGUMENTS, listOf("mode", "data base file")); return
-    }
+    //Check count of arguments for every mode
+    checkArgsCount(args) ?: return
+
     val mode = args[0]
     val fileName = args.last()
 
-    //Check count of arguments for every mode
-    when (mode) {
-        "get" -> {
-            if (args.size < 3) {
-                println(Msg.MISSED_ARGUMENTS, listOf("get", "key", "data base file"))
-                return
-            }
-            if (args.size != 3) println(Msg.MISSED_ARGUMENTS, args.slice(2 until args.size - 1))
-        }
-        "set" -> {
-            if (args.size < 4) {
-                println(Msg.MISSED_ARGUMENTS, listOf("set", "key", "value", "data base file"))
-                return
-            }
-            if (args.size != 4) println(Msg.MISSED_ARGUMENTS, args.slice(3 until args.size - 1))
-        }
-        "config", "dump" -> {
-            if (args.size != 2) println(Msg.MISSED_ARGUMENTS, args.slice(1 until args.size - 1))
-        }
+    //Check is file available for different actions or creating DB
+    if (mode == "create") {
+        val options = parseUserInput(args.slice(1 until args.size - 1))
+        initDataBase(fileName, options)
+        return
     }
 
-    //Check is file available for different actions or creating DB
-    when (mode) {
-        "create" -> {
-            val options = parseUserInput(args.slice(1 until args.size - 1))
-            initDataBase(fileName, options)
-            return
-        }
-        else -> {
-            if (!File(fileName).exists()) {
-                println()
-                println(Msg.FILE_NOT_EXIST, fileName); return
-            }
-            if (!checkIsAvailable(fileName)) {
-                println(Msg.FILE_NOT_AVAILABLE, fileName); return
-            }
-        }
-    }
-    val db = DB(fileName)
+    val db = saveOpenDB(fileName) ?: return
 
     //Different actions for each mode
     when (mode) {

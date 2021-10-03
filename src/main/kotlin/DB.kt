@@ -1,16 +1,32 @@
-import java.io.RandomAccessFile
-import java.io.IOException
-import java.io.EOFException
-import java.io.File
 import input.Options
 import input.toDBConfig
+import output.Msg
+import output.println
+import java.io.EOFException
+import java.io.File
+import java.io.IOException
+import java.io.RandomAccessFile
+import kotlin.system.exitProcess
+
+fun saveOpenDB(fileName: String): DB? {
+    val file = File(fileName)
+    return if (file.exists()) {
+        if (file.canWrite() && file.canRead()) {
+            DB(fileName)
+        } else {
+            println(Msg.FILE_NOT_AVAILABLE, fileName); null
+        }
+    } else {
+        println(Msg.FILE_NOT_EXIST, fileName); null
+    }
+}
 
 /** Write config to database and init every partition by void node*/
 fun initDataBase(fileName: String, options: Options): DB? = initDataBase(fileName, options.toDBConfig())
 fun initDataBase(fileName: String, config: DB.Config): DB? {
     val blankDB = File(fileName)
     if (blankDB.exists()) {
-        if (checkIsAvailable(fileName)) {
+        if (blankDB.canRead() && blankDB.canWrite()) {
             println(Msg.FILE_ALREADY_EXISTS, fileName)
             if ((readLine() ?: "n").uppercase() != "Y") return null else blankDB.delete()
         } else {
@@ -43,7 +59,7 @@ fun DB.shrink(options: Options): DB {
     return newDB
 }
 
-class DB(val fileName: String, newConfig: Config? = null): RandomAccessFile(fileName, "rw") {
+class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fileName, "rw") {
 
     /** Class for storing entry in DB */
     data class Node(val key: String, val value: String, val nextIndex: Int)
@@ -60,13 +76,12 @@ class DB(val fileName: String, newConfig: Config? = null): RandomAccessFile(file
         val configSize: Int = cntIntInHeader * Int.SIZE_BYTES + defaultValue.length
     }
 
-    val config = newConfig ?: readConfig()
+    val config = newConfig ?: readConfig() ?: exitProcess(0)
 
     /** Find partition and return node value by key*/
     fun getKeyValue(key: String): String? {
-        requireNotNull(config)
         if (key.length > config.keySize) {
-            println("Aborting. Key length must not be more, than key size")
+            println(Msg.ILLEGAL_FIELD_SIZE, "key")
             return null
         }
         key.padEnd(config.keySize, ' ').also {
@@ -78,14 +93,11 @@ class DB(val fileName: String, newConfig: Config? = null): RandomAccessFile(file
 
     /** Find partition and change node by key*/
     fun setKeyValue(key: String, value: String) {
-        requireNotNull(config)
         if (key.length > config.keySize) {
-            println("Aborting. Key length must not be more, than key size")
-            return
+            println(Msg.ILLEGAL_FIELD_SIZE, "key"); return
         }
         if (value.length > config.valueSize) {
-            println("Aborting. Value length must not be more, than value size")
-            return
+            println(Msg.ILLEGAL_FIELD_SIZE, "value"); return
         }
         val fullKey = key.padEnd(config.keySize)
         val beginOfChain = getHash(fullKey, config) * config.nodeSize + config.configSize
@@ -115,50 +127,16 @@ class DB(val fileName: String, newConfig: Config? = null): RandomAccessFile(file
             newConfig = Config(partitions, keySize, valueSize, defaultValue)
         } catch (error: Exception) {
             when (error) {
-                is EOFException -> println("Error! Lost data in file $fileName. File was damaged.")
-                is IOException -> println("Error! Can not read file $fileName")
+                is EOFException -> println(Msg.FILE_DAMAGED, fileName)
+                is IOException -> println(Msg.FILE_NOT_AVAILABLE, fileName)
             }
             return null
         }
         return newConfig
     }
 
-    /** Find node by key and partition index in DB */
-    fun findNodeInPartition(index: Int, key: String): Node? {
-        requireNotNull(config)
-        seek(index.toLong())
-        val curNode = readNode()
-        if (curNode.nextIndex == -1) return null
-        return if (curNode.key == key) curNode else findNodeInPartition(curNode.nextIndex, key)
-    }
-
-    /** Read N bytes from DB under cursor */
-    fun readString(size: Int) = String(ByteArray(size) { readByte() })
-
-    /** Calculate partition number for string */
-    fun getHash(str: String, config: Config) = kotlin.math.abs(str.hashCode()) % config.partitions
-
-    /** Read all node from DB under cursor*/
-    fun readNode(): Node {
-        requireNotNull(config)
-        val key = readString(config.keySize)
-        val value = readString(config.valueSize)
-        val skipToNextNode = readInt()
-        return Node(key, value, skipToNextNode)
-    }
-
-    /** Overwrite node under cursor in DB */
-    fun writeNode(node: Node) {
-        requireNotNull(config)
-        writeBytes(node.key.padEnd(config.keySize, ' '))
-        writeBytes(node.value.padEnd(config.valueSize, ' '))
-        writeInt(node.nextIndex)
-        seek(filePointer - config.nodeSize)
-    }
-
     /** Implementation for dump option. Reads all partitions node by node in memory order*/
     fun dumpAllDataBase(): Map<String, String> {
-        requireNotNull(config)
         seek(config.configSize.toLong())
         val cntNodes = (length().toInt() - config.configSize) / config.nodeSize
         return List(cntNodes) {
@@ -167,5 +145,35 @@ class DB(val fileName: String, newConfig: Config? = null): RandomAccessFile(file
             node.value.trim()
         )
         }.filter { it.first != config.defaultValue.trim() }.toMap()
+    }
+
+    /** Find node by key and partition index in DB */
+    private fun findNodeInPartition(index: Int, key: String): Node? {
+        seek(index.toLong())
+        val curNode = readNode()
+        if (curNode.nextIndex == -1) return null
+        return if (curNode.key == key) curNode else findNodeInPartition(curNode.nextIndex, key)
+    }
+
+    /** Read N bytes from DB under cursor */
+    private fun readString(size: Int) = String(ByteArray(size) { readByte() })
+
+    /** Calculate partition number for string */
+    private fun getHash(str: String, config: Config) = kotlin.math.abs(str.hashCode()) % config.partitions
+
+    /** Read all node from DB under cursor*/
+    private fun readNode(): Node {
+        val key = readString(config.keySize)
+        val value = readString(config.valueSize)
+        val skipToNextNode = readInt()
+        return Node(key, value, skipToNextNode)
+    }
+
+    /** Overwrite node under cursor in DB */
+    private fun writeNode(node: Node) {
+        writeBytes(node.key.padEnd(config.keySize, ' '))
+        writeBytes(node.value.padEnd(config.valueSize, ' '))
+        writeInt(node.nextIndex)
+        seek(filePointer - config.nodeSize)
     }
 }
