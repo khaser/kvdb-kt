@@ -1,8 +1,6 @@
 //Loop count challenge; while - 1; for - 0
 import input.parseUserInput
-import input.toConfig
 import java.io.File
-import java.io.RandomAccessFile
 
 val userManual = """
    NAME 
@@ -24,141 +22,86 @@ val userManual = """
        config - print database configuration
 """.trimIndent()
 
-/** Class for storing entry in DB */
-data class Node(val key: String, val value: String, val nextIndex: Int)
-
-/** Class for first N DB bytes for configuring DB structure*/
-data class DBConfig(
-    val partitions: Int = 100,
-    val keySize: Int = 255,
-    val valueSize: Int = 255,
-    val defaultValue: String = "".padEnd(valueSize)
-) {
-    private val cntIntInHeader = 3
-    val nodeSize: Int = keySize + valueSize + Int.SIZE_BYTES
-    val configSize: Int = cntIntInHeader * Int.SIZE_BYTES + defaultValue.length
-}
-
-typealias DB = RandomAccessFile
-
-/** Write config to database and init every partition by void node*/
-fun DB.initDataBase(config: DBConfig) {
-    this.setLength(0)
-    this.writeInt(config.partitions)
-    this.writeInt(config.keySize)
-    this.writeInt(config.valueSize)
-    this.writeBytes(config.defaultValue)
-    repeat(config.partitions) {
-        this.writeBytes("".padEnd(config.keySize))
-        this.writeBytes(config.defaultValue)
-        this.writeInt(-1)
-    }
-}
-
-/** Find partition and return node value by key*/
-fun DB.getKeyValue(config: DBConfig, key: String): String {
-    key.padEnd(config.keySize, ' ').also {
-        val beginOfChain = getHash(it, config) * config.nodeSize + config.configSize
-        val node = this.findNodeInPartition(config, beginOfChain, it)
-        return (node?.value ?: config.defaultValue).trim()
-    }
-}
-
-/** Find partition and change node by key*/
-fun DB.setKeyValue(config: DBConfig, key: String, value: String) {
-    val fullKey = key.padEnd(config.keySize)
-    val beginOfChain = getHash(fullKey, config) * config.nodeSize + config.configSize
-    val node = this.findNodeInPartition(config, beginOfChain, fullKey)
-    if (node != null) {
-        //Change existing key
-        this.seek(this.filePointer - config.nodeSize)
-        this.writeNode(config, Node(fullKey, value, node.nextIndex))
-    } else {
-        //Create new key
-        this.seek(this.filePointer - config.nodeSize)
-        this.writeNode(config, Node(fullKey, value, this.length().toInt()))
-        this.seek(this.length())
-        this.writeNode(config, Node("", config.defaultValue, -1))
-    }
-}
-
 /** Check permissions for write and read from DB FILE */
 fun checkIsAvailable(fileName: String) = File(fileName).let { it.canWrite() && it.canRead() }
 
-fun main(args: Array<String>) {
-//    val args = readLine()!!.split(' ')
+//fun main(args: Array<String>) {
+fun main() {
+    val args = readLine()!!.split(' ')
+    //Is help call check
+    if (args.contains("-h") || args.contains("--help")) {
+        println(userManual); return
+    }
     //Primary check
     if (args.size < 2) {
-        println("You must input at least mode and data base file")
-        println(userManual)
-        return
+        println(Msg.MISSED_ARGUMENTS, listOf("mode", "data base file")); return
     }
     val mode = args[0]
-    val file = args.last()
-    //Check is file available for different actions
+    val fileName = args.last()
+
+    //Check count of arguments for every mode
     when (mode) {
-        "create" -> if (checkIsAvailable(file)) {
-            println("Warning file $file already exist. Replace it? [Y/n]")
-            if ((readLine() ?: "n").uppercase() != "Y") {
-                println("Aborting"); return
+        "get" -> {
+            if (args.size < 3) {
+                println(Msg.MISSED_ARGUMENTS, listOf("get", "key", "data base file"))
+                return
             }
+            if (args.size != 3) println(Msg.MISSED_ARGUMENTS, args.slice(2 until args.size - 1))
         }
-        else -> if (!checkIsAvailable(file)) {
-            println("Database $file is not available"); return
+        "set" -> {
+            if (args.size < 4) {
+                println(Msg.MISSED_ARGUMENTS, listOf("set", "key", "value", "data base file"))
+                return
+            }
+            if (args.size != 4) println(Msg.MISSED_ARGUMENTS, args.slice(3 until args.size - 1))
+        }
+        "config", "dump" -> {
+            if (args.size != 2) println(Msg.MISSED_ARGUMENTS, args.slice(1 until args.size - 1))
         }
     }
-    val db = DB(file, "rw")
+
+    //Check is file available for different actions or creating DB
+    when (mode) {
+        "create" -> {
+            val options = parseUserInput(args.slice(1 until args.size - 1))
+            initDataBase(fileName, options)
+            return
+        }
+        else -> {
+            if (!File(fileName).exists()) {
+                println()
+                println(Msg.FILE_NOT_EXIST, fileName); return
+            }
+            if (!checkIsAvailable(fileName)) {
+                println(Msg.FILE_NOT_AVAILABLE, fileName); return
+            }
+        }
+    }
+    val db = DB(fileName)
 
     //Different actions for each mode
     when (mode) {
-        "create" -> {
-            parseUserInput(args.slice(1 until args.size - 1)).toConfig().let { db.initDataBase(it) }
-        }
         "set" -> {
-            val config = db.readConfig()
-            if (args.size < 4) {
-                println(userManual)
-                return
-            }
             val key = args[1]
             val value = args[2]
-            if (key.length > config.keySize) {
-                println("Aborting. Key length must not be more, than key size")
-                return
-            }
-            if (value.length > config.valueSize) {
-                println("Aborting. Value length must not be more, than value size")
-                return
-            }
-            if (args.size != 4) println("Warning!!! Skipped next keys ${args.slice(3 until args.size - 1)}")
-            db.setKeyValue(config, key, value)
+            db.setKeyValue(key, value)
         }
         "get" -> {
-            val config = db.readConfig()
-            if (args.size < 3) {
-                println(userManual)
-                return
-            }
             val key = args[1]
-            if (key.length > config.keySize) {
-                println("Aborting. Key length must not be more, than key size")
-                return
-            }
-            if (args.size != 3) println("Warning!!! Skipped next keys ${args.slice(2 until args.size - 1)}")
-            println(db.getKeyValue(config, key))
+            println(db.getKeyValue(key))
         }
         "dump" -> {
-            if (args.size != 2) println("Warning!!! Skipped next keys ${args.slice(1 until args.size - 1)}")
-            db.dumpAllDataBase(db.readConfig()).forEach { println(it) }
+            db.dumpAllDataBase().forEach { println(it) }
         }
         "shrink" -> {
-            val config = db.readConfig()
-            val newConfig = parseUserInput(args.slice(1 until args.size - 1)).toConfig()
-            db.shrink(config, newConfig)
+            val newConfig = parseUserInput(args.slice(1 until args.size - 1))
+            db.shrink(newConfig)
         }
         "config" -> {
-            if (args.size != 2) println("Warning!!! Skipped next keys ${args.slice(1 until args.size - 1)}")
-            db.readConfig().also { println(it.copy(defaultValue = "'" + it.defaultValue.trim() + "'")) }
+            db.readConfig().also {
+                if (it != null) println(it.copy(defaultValue = "'" + it.defaultValue.trim() + "'"))
+                else println("Config is undefined")
+            }
         }
         else -> {
             println(userManual)

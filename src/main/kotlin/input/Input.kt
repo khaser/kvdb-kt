@@ -1,7 +1,9 @@
 package input
 
-import DBConfig
+import DB.DBConfig
 import kotlin.system.exitProcess
+import Msg
+import println
 
 /** keys - strings like --help; args - string after keys */
 
@@ -35,7 +37,7 @@ private fun parseKeysWithArgs(args: MutableList<String>): MutableMap<Option, Str
             .also { repeat(it.size) { args.removeFirst() } })
         if (args.isEmpty()) break
         if (args.size == 1) {
-            println("Warning!!! After ${args[0]} option must be value")
+            println("Warning! After ${args[0]} option must be value")
             dropped.add(args[0])
             break
         }
@@ -45,15 +47,15 @@ private fun parseKeysWithArgs(args: MutableList<String>): MutableMap<Option, Str
             dropped.add(args.removeFirst())
             continue
         }
-        if (result.containsKey(option)) println("Warning!!! Redeclaration of option ${args[0]}")
+        if (result.containsKey(option)) println("Warning! Redeclaration of option ${args[0]}")
         result[option] = args[1]
         repeat(2) { args.removeFirst() }
     }
-    if (dropped.isNotEmpty()) println("Was ignored next keys: ${dropped.joinToString(" ")}")
+    if (dropped.isNotEmpty()) println(Msg.UNUSED_KEYS, dropped)
     return result
 }
 
-fun Options.toConfig(): DBConfig {
+fun Options.toDBConfig(): DBConfig {
     val partitions = this[Option.PARTITIONS]?.toInt() ?: 5000
     val keySize = this[Option.KEYS_SIZE]?.toInt() ?: 255
     val valueSize = this[Option.VALUES_SIZE]?.toInt() ?: 255
