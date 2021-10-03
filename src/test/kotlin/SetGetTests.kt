@@ -3,12 +3,23 @@ import kotlin.test.*
 
 internal class SetGetTests {
 
-    val db = DB("$testDir/setGetTests.db", "rw")
+    val fileName = "$testDir/setGetTests.db"
+
+    @BeforeTest
+    fun prepare() {
+        File(fileName).delete()
+    }
+
+    @AfterTest
+    fun cleanUp() {
+        File(fileName).delete()
+    }
 
     @Test
     fun getAfterSet() {
-        val config = DBConfig(3, 11, 15, "HEH".padEnd(15))
-        db.initDataBase(config)
+        val config = DB.Config(3, 11, 15, "HEH".padEnd(15))
+        val db = initDataBase("$testDir/setGetTests.db", config)
+        requireNotNull(db)
         val requests = mapOf(
             Pair("some", "my"),
             Pair("words", "programming"),
@@ -29,36 +40,44 @@ internal class SetGetTests {
             Pair("language", "the"),
         )
         requests.forEach {
-            db.setKeyValue(config, it.key, it.value)
+            db.setKeyValue(it.key, it.value)
         }
         requests.forEach {
-            assertEquals(it.value, db.getKeyValue(config, it.key))
+            assertEquals(it.value, db.getKeyValue(it.key))
         }
-        assertEquals(config.defaultValue.trim(), db.getKeyValue(config, "keyNoValue"))
+        assertEquals(config.defaultValue.trim(), db.getKeyValue("keyNoValue"))
     }
 
     @Test
-    fun stressTest() {
-        mixedGetSet(DBConfig(1000, 25, 25, "DEFAULT".padEnd(25)))
-        mixedGetSet(DBConfig(100, 25, 25, "ANOTHER DEFAULT".padEnd(25)))
+    fun stressTest1000Partitions() {
+        mixedGetSet(DB.Config(1000, 25, 25, "DEFAULT".padEnd(25)))
     }
 
-    private fun mixedGetSet(config: DBConfig) {
-        db.initDataBase(config)
+    @Test
+    fun stressTest100Partitions() {
+        mixedGetSet(DB.Config(100, 25, 25, "ANOTHER DEFAULT".padEnd(25)))
+    }
 
+    @Test
+    fun stressTest10Partitions() {
+        mixedGetSet(DB.Config(10, 25, 25, "one more default".padEnd(25)))
+    }
+
+    private fun mixedGetSet(config: DB.Config) {
+        val db = initDataBase(fileName, config)
+        requireNotNull(db)
         val solver: MutableMap<String, String> = mutableMapOf()
-
         File("$testDir/Query5000").readLines().forEach {
             val args = it.split(' ')
             when (args[0]) {
                 "set" -> {
                     solver[args[1]] = args[2]
-                    db.setKeyValue(config, args[1], args[2])
+                    db.setKeyValue(args[1], args[2])
                 }
                 "get" -> {
                     assertEquals(
                         solver.getOrDefault(args[1], config.defaultValue).trim(),
-                        db.getKeyValue(config, args[1]).trim()
+                        db.getKeyValue(args[1])?.trim()
                     )
                 }
             }

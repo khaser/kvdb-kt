@@ -6,8 +6,8 @@ import input.Options
 import input.toDBConfig
 
 /** Write config to database and init every partition by void node*/
-fun initDataBase(fileName: String, options: Options): DB? {
-    val newConfig = options.toDBConfig()
+fun initDataBase(fileName: String, options: Options): DB? = initDataBase(fileName, options.toDBConfig())
+fun initDataBase(fileName: String, config: DB.Config): DB? {
     val blankDB = File(fileName)
     if (blankDB.exists()) {
         if (checkIsAvailable(fileName)) {
@@ -17,15 +17,15 @@ fun initDataBase(fileName: String, options: Options): DB? {
             println(Msg.FILE_NOT_AVAILABLE, fileName); return null
         }
     }
-    val db = DB(fileName, newConfig)
+    val db = DB(fileName, config)
     db.setLength(0)
-    db.writeInt(newConfig.partitions)
-    db.writeInt(newConfig.keySize)
-    db.writeInt(newConfig.valueSize)
-    db.writeBytes(newConfig.defaultValue)
-    repeat(newConfig.partitions) {
-        db.writeBytes("".padEnd(newConfig.keySize))
-        db.writeBytes(newConfig.defaultValue)
+    db.writeInt(config.partitions)
+    db.writeInt(config.keySize)
+    db.writeInt(config.valueSize)
+    db.writeBytes(config.defaultValue)
+    repeat(config.partitions) {
+        db.writeBytes("".padEnd(config.keySize))
+        db.writeBytes(config.defaultValue)
         db.writeInt(-1)
     }
     return db
@@ -43,13 +43,13 @@ fun DB.shrink(options: Options): DB {
     return newDB
 }
 
-class DB(val fileName: String, newConfig: DBConfig? = null): RandomAccessFile(fileName, "rw") {
+class DB(val fileName: String, newConfig: Config? = null): RandomAccessFile(fileName, "rw") {
 
     /** Class for storing entry in DB */
     data class Node(val key: String, val value: String, val nextIndex: Int)
 
     /** Class for first N DB bytes for configuring DB structure*/
-    data class DBConfig(
+    data class Config(
         val partitions: Int = 100,
         val keySize: Int = 255,
         val valueSize: Int = 255,
@@ -104,15 +104,15 @@ class DB(val fileName: String, newConfig: DBConfig? = null): RandomAccessFile(fi
     }
 
     /** Read DBConfig from first N bytes of DB file */
-    fun readConfig(): DBConfig? {
+    fun readConfig(): Config? {
         seek(0)
-        val newConfig: DBConfig?
+        val newConfig: Config?
         try {
             val partitions = readInt()
             val keySize = readInt()
             val valueSize = readInt()
             val defaultValue = readString(valueSize)
-            newConfig = DBConfig(partitions, keySize, valueSize, defaultValue)
+            newConfig = Config(partitions, keySize, valueSize, defaultValue)
         } catch (error: Exception) {
             when (error) {
                 is EOFException -> println("Error! Lost data in file $fileName. File was damaged.")
@@ -136,7 +136,7 @@ class DB(val fileName: String, newConfig: DBConfig? = null): RandomAccessFile(fi
     fun readString(size: Int) = String(ByteArray(size) { readByte() })
 
     /** Calculate partition number for string */
-    fun getHash(str: String, config: DBConfig) = kotlin.math.abs(str.hashCode()) % config.partitions
+    fun getHash(str: String, config: Config) = kotlin.math.abs(str.hashCode()) % config.partitions
 
     /** Read all node from DB under cursor*/
     fun readNode(): Node {

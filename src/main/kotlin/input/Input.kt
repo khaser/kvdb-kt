@@ -1,6 +1,6 @@
 package input
 
-import DB.DBConfig
+import DB.Config
 import kotlin.system.exitProcess
 import Msg
 import println
@@ -55,7 +55,7 @@ private fun parseKeysWithArgs(args: MutableList<String>): MutableMap<Option, Str
     return result
 }
 
-fun Options.toDBConfig(): DBConfig {
+fun Options.toDBConfig(): Config {
     val partitions = this[Option.PARTITIONS]?.toInt() ?: 5000
     val keySize = this[Option.KEYS_SIZE]?.toInt() ?: 255
     val valueSize = this[Option.VALUES_SIZE]?.toInt() ?: 255
@@ -64,5 +64,5 @@ fun Options.toDBConfig(): DBConfig {
         println("Aborting. Default value length must not be more, than value size.")
         exitProcess(0)
     }
-    return DBConfig(partitions, keySize, valueSize, defaultValue)
+    return Config(partitions, keySize, valueSize, defaultValue)
 }

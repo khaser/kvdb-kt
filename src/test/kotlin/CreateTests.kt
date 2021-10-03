@@ -3,28 +3,28 @@ import input.*
 import java.io.File
 
 class CreateTests {
-    var db = DB("$testDir/test.db", "rw")
-
     private fun isFilesEqual(filenameA: String, filenameB: String) {
         val dumpA = File("$testDir/$filenameA").readBytes()
         val dumpB = File("$testDir/$filenameB").readBytes()
         assert(dumpA.contentEquals(dumpB))
     }
 
+    val fileName = "$testDir/test.db"
+
     @BeforeTest
     fun prepare() {
-        db.setLength(0)
+        File(fileName).delete()
     }
 
     @AfterTest
     fun cleanUp() {
-        db.setLength(0)
+        File(fileName).delete()
     }
 
     @Test
     fun defaultConfig() {
         val emptyOptions: Options = mapOf()
-        db.initDataBase(emptyOptions.toConfig())
+        val db = initDataBase(fileName, emptyOptions)
         isFilesEqual("dbWithDefaultConfig.db", "test.db")
     }
 
@@ -35,7 +35,7 @@ class CreateTests {
             Option.PARTITIONS to "8",
             Option.VALUES_SIZE to "12"
         )
-        db.initDataBase(options.toConfig())
+        val db = initDataBase(fileName, options)
         isFilesEqual("dbWithCustomConfig.db", "test.db")
     }
 }
