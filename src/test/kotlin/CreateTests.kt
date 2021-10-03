@@ -29,6 +29,7 @@ class CreateTests {
     fun defaultConfig() {
         val emptyOptions: Options = mapOf()
         val db = initDataBase(fileName, emptyOptions)
+        assert(db != null)
         isFilesEqual("dbWithDefaultConfig.db", "test.db")
     }
 
@@ -40,11 +41,12 @@ class CreateTests {
             Option.VALUES_SIZE to "12"
         )
         val db = initDataBase(fileName, options)
+        assert(db != null)
         isFilesEqual("dbWithCustomConfig.db", "test.db")
     }
 
     @Test
-    fun createOnFileWithoutPermissions() {
+    fun createFileWithoutPermissions() {
         val standardOut = System.out
         val stream = ByteArrayOutputStream()
         System.setOut(PrintStream(stream))
@@ -58,12 +60,13 @@ class CreateTests {
         val correctStream = ByteArrayOutputStream()
         System.setOut(PrintStream(correctStream))
         println(Msg.FILE_NOT_AVAILABLE, fileName)
+        assertEquals(null, db)
         assertEquals(correctStream.toString().trim(), stream.toString().trim())
         System.setOut(standardOut)
     }
 
     @Test
-    fun createOnExistedFile() {
+    fun createExistedFile() {
         val standardOut = System.out
         val stream = ByteArrayOutputStream()
         System.setOut(PrintStream(stream))
@@ -77,6 +80,7 @@ class CreateTests {
         val correctStream = ByteArrayOutputStream()
         System.setOut(PrintStream(correctStream))
         println(Msg.FILE_ALREADY_EXISTS, fileName)
+        assertEquals(null, db)
         assertEquals(correctStream.toString().trim(), stream.toString().trim())
         System.setOut(standardOut)
     }

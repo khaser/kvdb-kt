@@ -36,7 +36,7 @@ private fun parseKeysWithArgs(args: MutableList<String>): MutableMap<Option, Str
             .also { repeat(it.size) { args.removeFirst() } })
         if (args.isEmpty()) break
         if (args.size == 1) {
-            println("Warning! After ${args[0]} option must be value")
+            println(Msg.KEY_WITHOUT_ARGUMENT, args[0])
             dropped.add(args[0])
             break
         }
@@ -46,7 +46,7 @@ private fun parseKeysWithArgs(args: MutableList<String>): MutableMap<Option, Str
             dropped.add(args.removeFirst())
             continue
         }
-        if (result.containsKey(option)) println("Warning! Redeclaration of option ${args[0]}")
+        if (result.containsKey(option)) println(Msg.OPTION_REDECLARATION, args[0])
         result[option] = args[1]
         repeat(2) { args.removeFirst() }
     }
@@ -60,7 +60,7 @@ fun Options.toDBConfig(): Config {
     val valueSize = this[Option.VALUES_SIZE]?.toInt() ?: 255
     val defaultValue = (this[Option.DEFAULT_VALUE] ?: "").padEnd(valueSize)
     if (defaultValue.length != valueSize) {
-        println("Aborting. Default value length must not be more, than value size.")
+        println(Msg.ILLEGAL_FIELD_SIZE, "value")
         exitProcess(0)
     }
     return Config(partitions, keySize, valueSize, defaultValue)
