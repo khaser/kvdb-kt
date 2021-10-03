@@ -1,8 +1,8 @@
 package input
 
 import DB.Config
-import kotlin.system.exitProcess
 import output.*
+import kotlin.system.exitProcess
 
 /** keys - strings like --help; args - string after keys */
 

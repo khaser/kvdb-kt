@@ -36,6 +36,7 @@ internal class RebuildTests {
 
     @Test
     fun dumpEmptyDB() {
+        File("$testDir/new.db").delete()
         val options: Options = mapOf(
             Option.PARTITIONS to "15"
         )
@@ -45,4 +46,19 @@ internal class RebuildTests {
         db.close()
         File("$testDir/new.db").delete()
     }
+
+    @Test
+    fun rebuildEmpty() {
+        File("$testDir/new.db").delete()
+        var db = initDataBase("$testDir/new.db", Config())
+        requireNotNull(db)
+        val options: Options = mapOf(
+            Option.PARTITIONS to "15",
+            Option.KEYS_SIZE to "22"
+        )
+        db = db.shrink(options)
+        assertEquals(mapOf(), db.dumpAllDataBase())
+        File("$testDir/new.db").delete()
+    }
+
 }

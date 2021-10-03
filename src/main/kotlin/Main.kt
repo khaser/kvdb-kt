@@ -70,7 +70,7 @@ fun main() {
         }
         "config" -> {
             db.readConfig().also {
-                if (it != null) println(it.copy(defaultValue = "'" + it.defaultValue.trim() + "'"))
+                if (it != null) println(it.copy(preDefaultValue = "'" + it.defaultValue.trim() + "'"))
                 else println("Config is undefined")
             }
         }

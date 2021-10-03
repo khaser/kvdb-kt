@@ -22,7 +22,7 @@ fun println(type: Msg, str: String) {
             Msg.FILE_NOT_EXIST -> "Error! File $str does not exist."
             Msg.FILE_ALREADY_EXISTS -> "Warning! File $str already exist. Replace it? [Y/n]"
             Msg.FILE_DAMAGED -> "Error! Lost data in file $str. File was damaged."
-            Msg.ILLEGAL_FIELD_SIZE -> "Error!. Length of $str more than maximum allowed value"
+            Msg.ILLEGAL_FIELD_SIZE -> "Error! Length of $str more than maximum allowed value"
             Msg.KEY_WITHOUT_ARGUMENT -> "Warning! After $str option must be value"
             Msg.OPTION_REDECLARATION -> "Warning! Redeclaration of option $str"
             else -> throw IllegalArgumentException("Second argument should be a List<String>")

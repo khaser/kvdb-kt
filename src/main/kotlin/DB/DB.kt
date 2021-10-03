@@ -1,12 +1,15 @@
 package DB
 
+import input.Option
 import input.Options
+import input.toDBConfig
 import output.Msg
 import output.println
 import java.io.EOFException
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
+import kotlin.system.exitProcess
 
 
 /** Dump all DB and return new DB by adding all entries with new config
@@ -15,7 +18,18 @@ fun DB.shrink(options: Options): DB {
     val dump = dumpAllDataBase()
     this.close()
     File(fileName).delete()
-    val newDB = initDataBase(fileName, options)
+
+    val config = this.config
+    val partitions = options[Option.PARTITIONS]?.toInt() ?: config.partitions
+    val keySize = options[Option.KEYS_SIZE]?.toInt() ?: config.keySize
+    val valueSize = options[Option.VALUES_SIZE]?.toInt() ?: config.valueSize
+    val defaultValue = (options[Option.DEFAULT_VALUE] ?: config.defaultValue.trim()).padEnd(valueSize)
+    if (defaultValue.length != valueSize) {
+        println(Msg.ILLEGAL_FIELD_SIZE, "value")
+        exitProcess(0)
+    }
+
+    val newDB = initDataBase(fileName, Config(partitions, keySize, valueSize, defaultValue))
     requireNotNull(newDB)
     dump.forEach { newDB.setKeyValue(it.key, it.value) }
     return newDB
@@ -25,25 +39,26 @@ data class Config(
     val partitions: Int = 100,
     val keySize: Int = 255,
     val valueSize: Int = 255,
-    val defaultValue: String = ""
+    private val preDefaultValue: String = ""
 ) {
     private val cntIntInHeader = 3
+    val defaultValue =  preDefaultValue.padEnd(valueSize)
     val nodeSize: Int = keySize + valueSize + Int.SIZE_BYTES
     val configSize: Int = cntIntInHeader * Int.SIZE_BYTES + defaultValue.length
 }
 
-class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fileName, "rw") {
+/** Class for storing entry in DB */
+data class Node(
+    private val config: Config,
+    private val preKey: String,
+    private val preValue: String,
+    val nextIndex: Int
+) {
+    val key = preKey.padEnd(config.keySize)
+    val value = preValue.padEnd(config.valueSize)
+}
 
-    /** Class for storing entry in DB */
-    data class Node(
-        private val config: Config,
-        private val preKey: String,
-        private val preValue: String,
-        val nextIndex: Int
-    ) {
-        val key = preKey.padEnd(config.keySize)
-        val value = preValue.padEnd(config.valueSize)
-    }
+class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fileName, "rw") {
 
     /** Class for first N DB bytes for configuring DB structure*/
     val config = newConfig ?: readConfig() ?: throw Exception("DamagedFile")
@@ -56,7 +71,7 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
         val beginOfChain = getBeginOfChain(key)
         val node = findNodeInPartition(beginOfChain, key) ?: return
         seek(filePointer - config.nodeSize)
-        writeNode(Node(config, "", config.defaultValue, node.nextIndex))
+        rewriteNode(Node(config, "", config.defaultValue, node.nextIndex))
     }
 
     /** Find partition and return node value by key*/
@@ -72,24 +87,26 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
 
     /** Find partition and change node by key*/
     fun setKeyValue(key: String, value: String) {
+        var ok = true
         if (key.length > config.keySize) {
-            println(Msg.ILLEGAL_FIELD_SIZE, "key"); return
+            println(Msg.ILLEGAL_FIELD_SIZE, "key"); ok = false
         }
         if (value.length > config.valueSize) {
-            println(Msg.ILLEGAL_FIELD_SIZE, "value"); return
+            println(Msg.ILLEGAL_FIELD_SIZE, "value"); ok = false
         }
+        if (!ok) return
         val beginOfChain = getBeginOfChain(key)
         val node = findNodeInPartition(beginOfChain, key)
         if (node != null) {
             //Change existing key
             seek(filePointer - config.nodeSize)
-            writeNode(Node(config, key, value, node.nextIndex))
+            rewriteNode(Node(config, key, value, node.nextIndex))
         } else {
             //Create new key
             seek(filePointer - config.nodeSize)
-            writeNode(Node(config, key, value, length().toInt()))
+            rewriteNode(Node(config, key, value, length().toInt()))
             seek(length())
-            writeNode(Node(config, "", config.defaultValue, -1))
+            rewriteNode(Node(config, "", config.defaultValue, -1))
         }
     }
 
@@ -151,10 +168,17 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
     }
 
     /** Overwrite node under cursor in DB */
-    private fun writeNode(node: Node) {
+    private fun rewriteNode(node: Node) {
         writeBytes(node.key)
         writeBytes(node.value)
         writeInt(node.nextIndex)
         seek(filePointer - config.nodeSize)
+    }
+
+    /** Write node under cursor in DB*/
+    fun writeNode(node: Node) {
+        writeBytes(node.key)
+        writeBytes(node.value)
+        writeInt(node.nextIndex)
     }
 }

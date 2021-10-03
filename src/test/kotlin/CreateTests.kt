@@ -1,10 +1,15 @@
-import kotlin.test.*
-import input.*
-import output.*
-import DB.*
+import DB.initDataBase
+import input.Option
+import input.Options
+import output.Msg
+import output.println
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class CreateTests {
     private fun isFilesEqual(filenameA: String, filenameB: String) {
@@ -57,8 +62,7 @@ class CreateTests {
         )
         val fileName = "$testDir/fileWithoutPermission.db"
         val db = initDataBase(fileName, options)
-        val correctStream = ByteArrayOutputStream()
-        System.setOut(PrintStream(correctStream))
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         println(Msg.FILE_NOT_AVAILABLE, fileName)
         assertEquals(null, db)
         assertEquals(correctStream.toString().trim(), stream.toString().trim())
@@ -77,8 +81,7 @@ class CreateTests {
         )
         val fileName = "$testDir/dumpTest.db"
         val db = initDataBase(fileName, options)
-        val correctStream = ByteArrayOutputStream()
-        System.setOut(PrintStream(correctStream))
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         println(Msg.FILE_ALREADY_EXISTS, fileName)
         assertEquals(null, db)
         assertEquals(correctStream.toString().trim(), stream.toString().trim())

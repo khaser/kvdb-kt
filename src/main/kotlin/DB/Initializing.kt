@@ -33,11 +33,9 @@ fun initDataBase(fileName: String, config: Config): DB? {
     db.writeInt(config.partitions)
     db.writeInt(config.keySize)
     db.writeInt(config.valueSize)
-    db.writeBytes(config.defaultValue)
+    db.writeBytes(config.defaultValue.padEnd(config.valueSize))
     repeat(config.partitions) {
-        db.writeBytes("".padEnd(config.keySize))
-        db.writeBytes(config.defaultValue)
-        db.writeInt(-1)
+        db.writeNode(Node(config, "", config.defaultValue, -1))
     }
     return db
 }

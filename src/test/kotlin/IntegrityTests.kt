@@ -2,9 +2,9 @@ import java.io.File
 import kotlin.test.*
 import DB.*
 
-internal class SetGetTests {
+internal class IntegrityTests {
 
-    val fileName = "$testDir/setGetTests.db"
+    val fileName = "$testDir/IntegrityTests.db"
 
     @BeforeTest
     fun prepare() {
@@ -19,7 +19,7 @@ internal class SetGetTests {
     @Test
     fun getAfterSet() {
         val config = Config(3, 11, 15, "HEH".padEnd(15))
-        val db = initDataBase("$testDir/setGetTests.db", config)
+        val db = initDataBase(fileName, config)
         requireNotNull(db)
         val requests = mapOf(
             Pair("some", "my"),
