@@ -6,13 +6,12 @@ import java.io.EOFException
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
-import kotlin.system.exitProcess
 
 fun saveOpenDB(fileName: String): DB? {
     val file = File(fileName)
     return if (file.exists()) {
         if (file.canWrite() && file.canRead()) {
-            DB(fileName)
+            try { DB(fileName) } catch (error: Exception) { return null }
         } else {
             println(Msg.FILE_NOT_AVAILABLE, fileName); null
         }
@@ -76,7 +75,7 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
         val configSize: Int = cntIntInHeader * Int.SIZE_BYTES + defaultValue.length
     }
 
-    val config = newConfig ?: readConfig() ?: exitProcess(0)
+    val config = newConfig ?: readConfig() ?: throw Exception("DamagedFile")
 
     /** Find partition and return node value by key*/
     fun getKeyValue(key: String): String? {

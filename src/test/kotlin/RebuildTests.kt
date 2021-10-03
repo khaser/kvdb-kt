@@ -1,7 +1,10 @@
 import input.Option
 import input.Options
+import output.Msg
+import java.io.ByteArrayOutputStream
 import kotlin.test.*
 import java.io.File
+import java.io.PrintStream
 
 internal class RebuildTests {
 

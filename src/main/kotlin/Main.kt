@@ -1,9 +1,6 @@
 //Loop count challenge; while - 1; for - 0
 import input.parseUserInput
 import input.checkArgsCount
-import java.io.File
-import output.*
-import java.io.IOException
 
 val userManual = """
    NAME 
