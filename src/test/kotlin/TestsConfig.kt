@@ -1,2 +1,5 @@
 const val testDir = "testFiles"
 const val damagedFileName = "$testDir/Damaged.db"
+const val configDamagedFileName = "$testDir/ConfigDamaged.db"
+const val fileNameWithoutPermission = "$testDir/FileWithoutPermission.db"
+const val unexistedFileName = "$testDir/Unexisted.db"

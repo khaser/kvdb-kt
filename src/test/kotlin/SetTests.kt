@@ -1,9 +1,13 @@
-import DB.*
-import output.*
+import DB.saveOpenDB
+import output.Msg
+import output.println
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 
 internal class SetTests {
@@ -31,13 +35,23 @@ internal class SetTests {
     }
 
     @Test
+    fun emptyKey() {
+        val db = saveOpenDB(runFileName)
+        requireNotNull(db)
+        db.setKeyValue("", "val for emp key")
+        assertEquals("val for emp key", db.getKeyValue(""))
+        //Check saving default value for all partitions
+        assertEquals(db.config.defaultValue, db.getKeyValue("void key"))
+        assertEquals(db.config.defaultValue, db.getKeyValue("void key2"))
+    }
+
+    @Test
     fun singleSetExistedElement() {
         val db = saveOpenDB(runFileName)
         requireNotNull(db)
         db.setKeyValue("hello", "stranger")
         assertEquals("stranger", db.getKeyValue("hello"))
     }
-
 
     @Test
     fun singleSetWithSpaces() {
@@ -71,7 +85,6 @@ internal class SetTests {
         assertEquals(correctStream.toString(), stream.toString())
     }
 
-
     @Test
     fun setLargeKeyAndValue() {
         val db = saveOpenDB(runFileName)
@@ -86,15 +99,14 @@ internal class SetTests {
         assertEquals(correctStream.toString(), stream.toString())
     }
 
-
     @Test
     fun setDamagedFile() {
         val db = saveOpenDB(damagedFileName)
         requireNotNull(db)
-        val stream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
+        val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         db.setKeyValue(" _key ", " __value__ ")
-        val correctStream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
-        repeat(2){println(Msg.FILE_DAMAGED, damagedFileName)}
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        repeat(2) { println(Msg.FILE_DAMAGED, damagedFileName) }
         assertEquals(correctStream.toString(), stream.toString())
     }
 }

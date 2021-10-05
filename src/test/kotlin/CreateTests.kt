@@ -1,41 +1,39 @@
 import DB.initDataBase
-import input.Option
-import input.Options
-import output.Msg
-import output.println
+import input.*
+import output.*
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import kotlin.test.*
 
-class CreateTests {
+internal class CreateTests {
     private fun isFilesEqual(filenameA: String, filenameB: String) {
-        val dumpA = File("$testDir/$filenameA").readBytes()
-        val dumpB = File("$testDir/$filenameB").readBytes()
+        val dumpA = File(filenameA).readBytes()
+        val dumpB = File(filenameB).readBytes()
         assert(dumpA.contentEquals(dumpB))
     }
 
-    val fileName = "$testDir/test.db"
+    val runFileName = "$testDir/.runCreateTest.db"
+    val standardOut = System.out
 
     @BeforeTest
     fun prepare() {
-        File(fileName).delete()
+        System.setOut(PrintStream(standardOut))
+        File(runFileName).delete()
     }
 
     @AfterTest
     fun cleanUp() {
-        File(fileName).delete()
+        System.setOut(PrintStream(standardOut))
+        File(runFileName).delete()
     }
 
     @Test
     fun defaultConfig() {
         val emptyOptions: Options = mapOf()
-        val db = initDataBase(fileName, emptyOptions)
+        val db = initDataBase(runFileName, emptyOptions)
         assert(db != null)
-        isFilesEqual("dbWithDefaultConfig.db", "test.db")
+        isFilesEqual("$testDir/CreateTests/DefaultConfig.db", runFileName)
     }
 
     @Test
@@ -45,46 +43,40 @@ class CreateTests {
             Option.PARTITIONS to "8",
             Option.VALUES_SIZE to "12"
         )
-        val db = initDataBase(fileName, options)
+        val db = initDataBase(runFileName, options)
         assert(db != null)
-        isFilesEqual("dbWithCustomConfig.db", "test.db")
+        isFilesEqual("$testDir/CreateTests/CustomConfig.db", runFileName)
     }
 
     @Test
     fun createFileWithoutPermissions() {
-        val standardOut = System.out
-        val stream = ByteArrayOutputStream()
-        System.setOut(PrintStream(stream))
+        val stream = ByteArrayOutputStream().also{System.setOut(PrintStream(it))}
         val options: Options = mapOf(
             Option.DEFAULT_VALUE to "XXX",
             Option.PARTITIONS to "8",
             Option.VALUES_SIZE to "12"
         )
-        val fileName = "$testDir/fileWithoutPermission.db"
+        val fileName = fileNameWithoutPermission
         val db = initDataBase(fileName, options)
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         println(Msg.FILE_NOT_AVAILABLE, fileName)
         assertEquals(null, db)
         assertEquals(correctStream.toString().trim(), stream.toString().trim())
-        System.setOut(standardOut)
     }
 
     @Test
     fun createExistedFile() {
-        val standardOut = System.out
-        val stream = ByteArrayOutputStream()
-        System.setOut(PrintStream(stream))
+        val stream = ByteArrayOutputStream().also{System.setOut(PrintStream(it))}
         val options: Options = mapOf(
             Option.DEFAULT_VALUE to "XXX",
             Option.PARTITIONS to "8",
             Option.VALUES_SIZE to "12"
         )
-        val fileName = "$testDir/dumpTest.db"
+        val fileName = "$testDir/DumpTest.db"
         val db = initDataBase(fileName, options)
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         println(Msg.FILE_ALREADY_EXISTS, fileName)
         assertEquals(null, db)
         assertEquals(correctStream.toString().trim(), stream.toString().trim())
-        System.setOut(standardOut)
     }
 }

@@ -1,65 +1,72 @@
-import java.io.File
-import kotlin.test.*
 import DB.*
 import output.*
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.PrintStream
+import kotlin.test.*
+
 
 internal class RemoveTests {
-    val standartOut = System.out
-    val fileOriginal = "$testDir/RemoveTests.db"
-    val fileName = "$testDir/new.db"
-    val config = Config(2, 10, 10, "default")
+    val envFileName = "$testDir/RemoveTests.db"
+    val runFileName = "$testDir/.runRemoveTests.db"
+    val sysOut = System.out
 
     @BeforeTest
     fun prepare() {
-        File(fileOriginal).copyTo(File(fileName), true)
+        File(envFileName).copyTo(File(runFileName), true)
     }
 
     @AfterTest
     fun cleanUp() {
-        File(fileName).delete()
-        System.setOut(standartOut)
+        File(runFileName).delete()
+        System.setOut(sysOut)
     }
 
     @Test
-    fun singleRemove() {
-        val db = saveOpenDB(fileName)
+    fun removeNotExistedElement() {
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        assertEquals("hey", db.getKeyValue("testKey"))
-        db.removeKey("testKey")
-        assertEquals(db.config.defaultValue.trim(), db.getKeyValue("testKey"))
+        db.removeKey("Not_exist")
+        assertEquals(db.config.defaultValue, db.getKeyValue("Not_exist"))
     }
 
     @Test
-    fun removeNonExisted() {
-        val db = saveOpenDB(fileName)
+    fun removeExistedElement() {
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
-        db.removeKey("nonExistedKey")
-        assertEquals("", stream.toString())
-        assertEquals(db.config.defaultValue.trim(), db.getKeyValue("nonExistedKey"))
+        db.removeKey("Exist!")
+        assertEquals(db.config.defaultValue, db.getKeyValue("Exist!"))
     }
 
+
     @Test
-    fun removeTwice() {
-        val db = saveOpenDB(fileName)
+    fun removeWithSpaces() {
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        assertEquals("andrew", db.getKeyValue("khaser"))
-        db.removeKey("khaser")
-        db.removeKey("khaser")
-        assertEquals(config.defaultValue.trim(), db.getKeyValue("khaser"))
+        db.removeKey(" _key ")
+        assertEquals(db.config.defaultValue, db.getKeyValue(" _key "))
     }
 
     @Test
     fun removeLargeKey() {
-        val db = saveOpenDB(fileName)
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        val longKey = "longkeyxxxxxxxxxxxxxxxxxxxxxxxx"
+        val longKey = "longkey".padEnd(100)
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         db.removeKey(longKey)
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         println(Msg.ILLEGAL_FIELD_SIZE, "key")
+        assertEquals(correctStream.toString(), stream.toString())
+    }
+
+    @Test
+    fun removeDamagedFile() {
+        val db = saveOpenDB(damagedFileName)
+        requireNotNull(db)
+        val stream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
+        db.removeKey(" _key ")
+        val correctStream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
+        repeat(1){println(Msg.FILE_DAMAGED, damagedFileName)}
         assertEquals(correctStream.toString(), stream.toString())
     }
 }
