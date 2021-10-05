@@ -54,14 +54,9 @@ private fun parseKeysWithArgs(args: MutableList<String>): MutableMap<Option, Str
     return result
 }
 
-fun Options.toDBConfig(): Config {
-    val partitions = this[Option.PARTITIONS]?.toInt() ?: 5000
-    val keySize = this[Option.KEYS_SIZE]?.toInt() ?: 255
-    val valueSize = this[Option.VALUES_SIZE]?.toInt() ?: 255
-    val defaultValue = (this[Option.DEFAULT_VALUE] ?: "").padEnd(valueSize)
-    if (defaultValue.length != valueSize) {
-        println(Msg.ILLEGAL_FIELD_SIZE, "value")
-        exitProcess(0)
-    }
-    return Config(partitions, keySize, valueSize, defaultValue)
-}
+fun Options.toDBConfig() = Config(
+    this[Option.PARTITIONS]?.toInt() ?: 5000,
+    this[Option.KEYS_SIZE]?.toInt() ?: 255,
+    this[Option.VALUES_SIZE]?.toInt() ?: 255,
+    this[Option.DEFAULT_VALUE] ?: ""
+)

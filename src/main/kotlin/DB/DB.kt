@@ -2,7 +2,6 @@ package DB
 
 import input.Option
 import input.Options
-import input.toDBConfig
 import output.Msg
 import output.println
 import java.io.EOFException
@@ -10,7 +9,6 @@ import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 import kotlin.system.exitProcess
-
 
 /** Dump all DB and return new DB by adding all entries with new config
  *  Warning! Old DB is becoming outdated*/
@@ -39,24 +37,16 @@ data class Config(
     val partitions: Int = 100,
     val keySize: Int = 255,
     val valueSize: Int = 255,
-    private val preDefaultValue: String = ""
+    val defaultValue: String = ""
 ) {
-    private val cntIntInHeader = 3
-    val defaultValue =  preDefaultValue.padEnd(valueSize)
-    val nodeSize: Int = keySize + valueSize + Int.SIZE_BYTES
-    val configSize: Int = cntIntInHeader * Int.SIZE_BYTES + defaultValue.length
+    private val cntSystemBytesInHeader = 4 * Int.SIZE_BYTES
+    private val cntSystemBytesInNode = 2 * Int.SIZE_BYTES + 2 * Long.SIZE_BYTES
+    val nodeSize: Int = keySize + valueSize + cntSystemBytesInNode
+    val configSize: Int = defaultValue.length + cntSystemBytesInHeader
 }
 
 /** Class for storing entry in DB */
-data class Node(
-    private val config: Config,
-    private val preKey: String,
-    private val preValue: String,
-    val nextIndex: Int
-) {
-    val key = preKey.padEnd(config.keySize)
-    val value = preValue.padEnd(config.valueSize)
-}
+data class Node(private val config: Config, val key: String, val value: String, val itIndex: Long, val nextIndex: Long)
 
 class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fileName, "rw") {
 
@@ -68,10 +58,9 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
         if (key.length > config.keySize) {
             println(Msg.ILLEGAL_FIELD_SIZE, "key"); return
         }
-        val beginOfChain = getBeginOfChain(key)
+        val beginOfChain = getPartition(key)
         val node = findNodeInPartition(beginOfChain, key) ?: return
-        seek(filePointer - config.nodeSize)
-        rewriteNode(Node(config, "", config.defaultValue, node.nextIndex))
+        writeNode(node.copy(value = config.defaultValue))
     }
 
     /** Find partition and return node value by key*/
@@ -80,9 +69,9 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
             println(Msg.ILLEGAL_FIELD_SIZE, "key")
             return null
         }
-        val beginOfChain = getBeginOfChain(key)
+        val beginOfChain = getPartition(key)
         val node = findNodeInPartition(beginOfChain, key)
-        return (node?.value ?: config.defaultValue).trim()
+        return node?.value ?: config.defaultValue
     }
 
     /** Find partition and change node by key*/
@@ -95,18 +84,16 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
             println(Msg.ILLEGAL_FIELD_SIZE, "value"); ok = false
         }
         if (!ok) return
-        val beginOfChain = getBeginOfChain(key)
-        val node = findNodeInPartition(beginOfChain, key)
+        val partition = getPartition(key)
+        val node = findNodeInPartition(partition, key)
         if (node != null) {
             //Change existing key
-            seek(filePointer - config.nodeSize)
-            rewriteNode(Node(config, key, value, node.nextIndex))
+            writeNode(node.copy(key = key, value = value))
         } else {
             //Create new key
-            seek(filePointer - config.nodeSize)
-            rewriteNode(Node(config, key, value, length().toInt()))
-            seek(length())
-            rewriteNode(Node(config, "", config.defaultValue, -1))
+            val lastNode = getLastNodeInPartition(partition)
+            writeNode(lastNode.copy(nextIndex = length()))
+            writeNode(Node(config, key, value, length(), -1))
         }
     }
 
@@ -118,7 +105,7 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
             val partitions = readInt()
             val keySize = readInt()
             val valueSize = readInt()
-            val defaultValue = readString(valueSize)
+            val defaultValue = readString()
             newConfig = Config(partitions, keySize, valueSize, defaultValue)
         } catch (error: Exception) {
             when (error) {
@@ -135,50 +122,63 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
         seek(config.configSize.toLong())
         val cntNodes = (length().toInt() - config.configSize) / config.nodeSize
         return List(cntNodes) {
-            val node = readNode(); Pair(
+            val node = readNode(0); Pair(
             node.key.trim(),
             node.value.trim()
         )
-        }.filter { it.first != config.defaultValue.trim() }.toMap()
+        }.filter { it.first != config.defaultValue }.toMap()
     }
 
-    /** Find node by key and partition index in DB */
-    private fun findNodeInPartition(index: Int, key: String): Node? {
-        seek(index.toLong())
-        val curNode = readNode()
-        if (curNode.nextIndex == -1) return null
-        return if (curNode.key.trim() == key) curNode else findNodeInPartition(curNode.nextIndex, key)
+    /** Find node by partition and key in DB */
+    private fun findNodeInPartition(index: Long, key: String): Node? {
+        if (index == -1L) return null
+        val curNode = readNode(index)
+        return if (curNode.key == key) curNode else findNodeInPartition(curNode.nextIndex, key)
+    }
+
+    /** Find last node in partition */
+    private fun getLastNodeInPartition(index: Long): Node {
+        val curNode = readNode(index)
+        return if (curNode.nextIndex == -1L) curNode else getLastNodeInPartition(curNode.nextIndex)
+    }
+
+    /** Calculate index of begin of chain, which content key */
+    private fun getPartition(key: String) = getHash(key, config) * config.nodeSize + config.configSize
+
+    /** Calculate partition number for string */
+    private fun getHash(str: String, config: Config) = (kotlin.math.abs(str.hashCode()) % config.partitions).toLong()
+
+    /** Read all node from DB under cursor*/
+    private fun readNode(pointer: Long): Node {
+        seek(pointer)
+        val key = readString()
+        seek(pointer + config.keySize + Int.SIZE_BYTES)
+        val value = readString()
+        seek(pointer + config.keySize + config.valueSize + 2 * Int.SIZE_BYTES)
+        val itIndex = readLong()
+        val nextIndex = readLong()
+        return Node(config, key, value, itIndex, nextIndex)
+    }
+
+    /** Write node to DB*/
+    fun writeNode(node: Node) {
+        seek(node.itIndex)
+        writeString(node.key)
+        seek(node.itIndex + config.keySize + Int.SIZE_BYTES)
+        writeString(node.value)
+        seek(node.itIndex + config.keySize + config.valueSize + 2 * Int.SIZE_BYTES)
+        writeLong(node.itIndex)
+        writeLong(node.nextIndex)
+    }
+
+    fun writeString(str: String) {
+        writeInt(str.length)
+        writeBytes(str)
     }
 
     /** Read N bytes from DB under cursor */
-    private fun readString(size: Int) = String(ByteArray(size) { readByte() })
-
-    /** Calculate index of begin of chain, which content key */
-    private fun getBeginOfChain(key: String) = getHash(key, config) * config.nodeSize + config.configSize
-
-    /** Calculate partition number for string */
-    private fun getHash(str: String, config: Config) = kotlin.math.abs(str.hashCode()) % config.partitions
-
-    /** Read all node from DB under cursor*/
-    private fun readNode(): Node {
-        val key = readString(config.keySize)
-        val value = readString(config.valueSize)
-        val skipToNextNode = readInt()
-        return Node(config, key, value, skipToNextNode)
-    }
-
-    /** Overwrite node under cursor in DB */
-    private fun rewriteNode(node: Node) {
-        writeBytes(node.key)
-        writeBytes(node.value)
-        writeInt(node.nextIndex)
-        seek(filePointer - config.nodeSize)
-    }
-
-    /** Write node under cursor in DB*/
-    fun writeNode(node: Node) {
-        writeBytes(node.key)
-        writeBytes(node.value)
-        writeInt(node.nextIndex)
+    private fun readString(): String {
+        val size = readInt()
+        return String(ByteArray(size) { readByte() })
     }
 }

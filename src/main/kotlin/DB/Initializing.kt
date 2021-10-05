@@ -1,7 +1,7 @@
 package DB
 
 import input.*
-import output.Msg
+import output.*
 import java.io.File
 
 fun saveOpenDB(fileName: String): DB? {
@@ -10,10 +10,10 @@ fun saveOpenDB(fileName: String): DB? {
         if (file.canWrite() && file.canRead()) {
             try { DB(fileName) } catch (error: Exception) { return null }
         } else {
-            output.println(Msg.FILE_NOT_AVAILABLE, fileName); null
+            println(Msg.FILE_NOT_AVAILABLE, fileName); null
         }
     } else {
-        output.println(Msg.FILE_NOT_EXIST, fileName); null
+        println(Msg.FILE_NOT_EXIST, fileName); null
     }
 }
 
@@ -22,20 +22,23 @@ fun initDataBase(fileName: String, config: Config): DB? {
     val blankDB = File(fileName)
     if (blankDB.exists()) {
         if (blankDB.canRead() && blankDB.canWrite()) {
-            output.println(Msg.FILE_ALREADY_EXISTS, fileName)
+            println(Msg.FILE_ALREADY_EXISTS, fileName)
             if ((readLine() ?: "n").uppercase() != "Y") return null else blankDB.delete()
         } else {
-            output.println(Msg.FILE_NOT_AVAILABLE, fileName); return null
+            println(Msg.FILE_NOT_AVAILABLE, fileName); return null
         }
+    }
+    if (config.defaultValue.length > config.valueSize) {
+        println(Msg.ILLEGAL_FIELD_SIZE, "default")
     }
     val db = DB(fileName, config)
     db.setLength(0)
     db.writeInt(config.partitions)
     db.writeInt(config.keySize)
     db.writeInt(config.valueSize)
-    db.writeBytes(config.defaultValue.padEnd(config.valueSize))
+    db.writeString(config.defaultValue)
     repeat(config.partitions) {
-        db.writeNode(Node(config, "", config.defaultValue, -1))
+        db.writeNode(Node(config, "", "", db.length(), -1))
     }
     return db
 }
