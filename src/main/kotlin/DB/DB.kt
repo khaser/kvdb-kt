@@ -5,7 +5,7 @@ import output.println
 import java.io.EOFException
 import java.io.IOException
 import java.io.RandomAccessFile
-
+import kotlin.system.exitProcess
 
 
 data class Config(
@@ -66,7 +66,7 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
             writeNode(node.copy(key = key, value = value))
         } else {
             //Create new key
-            val lastNode = getLastNodeInPartition(partition)
+            val lastNode = getLastNodeInPartition(partition) ?: return
             writeNode(lastNode.copy(nextIndex = length()))
             writeNode(Node(config, key, value, length(), -1))
         }
@@ -94,29 +94,30 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
 
     /** Implementation for dump option. Reads all partitions node by node in memory order*/
     fun dumpAllDataBase(): List<Pair<String, String>> {
-        return List(config.partitions) {
-            getNodesInPartition(getPartition(it)).dropLast(1)
-        }.flatten().filter { it.value != config.defaultValue }.map { Pair(it.key, it.value) }
+        val partitions = List(config.partitions) {
+            getNodesInPartition(getPartition(it))?.dropLast(1) ?: exitProcess(1)
+        }
+        return partitions.flatten().filter { it.value != config.defaultValue }.map { Pair(it.key, it.value) }
     }
 
     /** Find node by partition and key in DB */
     private fun findNodeInPartition(index: Long, key: String): Node? {
         if (index == -1L) return null
-        val curNode = readNode(index)
+        val curNode = readNode(index) ?: return null
         return if (curNode.key == key) curNode else findNodeInPartition(curNode.nextIndex, key)
     }
 
     /** Find last node in partition */
-    private fun getLastNodeInPartition(index: Long): Node {
-        val curNode = readNode(index)
+    private fun getLastNodeInPartition(index: Long): Node? {
+        val curNode = readNode(index) ?: return null
         return if (curNode.nextIndex == -1L) curNode else getLastNodeInPartition(curNode.nextIndex)
     }
 
     /** Return all nodes in partition */
-    private fun getNodesInPartition(index: Long): MutableList<Node> {
-        val curNode = readNode(index)
+    private fun getNodesInPartition(index: Long): MutableList<Node>? {
+        val curNode = readNode(index) ?: return null
         return if (curNode.nextIndex == -1L) mutableListOf(curNode)
-        else getNodesInPartition(curNode.nextIndex).also { it.add(curNode) }
+        else getNodesInPartition(curNode.nextIndex).also { it?.add(curNode) ?: return null }
     }
 
     /** Calculate index of begin of chain, which content key */
@@ -127,15 +128,20 @@ class DB(val fileName: String, newConfig: Config? = null) : RandomAccessFile(fil
     private fun getHash(str: String, config: Config) = (kotlin.math.abs(str.hashCode()) % config.partitions).toLong()
 
     /** Read all node from DB under cursor*/
-    private fun readNode(pointer: Long): Node {
-        seek(pointer)
-        val key = readString()
-        seek(pointer + config.keySize + Int.SIZE_BYTES)
-        val value = readString()
-        seek(pointer + config.keySize + config.valueSize + 2 * Int.SIZE_BYTES)
-        val itIndex = readLong()
-        val nextIndex = readLong()
-        return Node(config, key, value, itIndex, nextIndex)
+    private fun readNode(pointer: Long): Node? {
+        return try {
+            seek(pointer)
+            val key = readString()
+            seek(pointer + config.keySize + Int.SIZE_BYTES)
+            val value = readString()
+            seek(pointer + config.keySize + config.valueSize + 2 * Int.SIZE_BYTES)
+            val itIndex = readLong()
+            val nextIndex = readLong()
+            Node(config, key, value, itIndex, nextIndex)
+        } catch (error: Exception) {
+            println(Msg.FILE_DAMAGED, fileName)
+            return null
+        }
     }
 
     /** Write node to DB*/

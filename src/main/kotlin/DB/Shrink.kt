@@ -8,7 +8,6 @@ import output.*
  *  Warning! Old DB is becoming outdated*/
 fun DB.shrink(options: Options): DB? {
     var dump = dumpAllDataBase()
-
     val config = this.config
     val newConfig = Config(
         options[Option.PARTITIONS]?.toInt() ?: config.partitions,
