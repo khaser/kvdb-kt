@@ -4,6 +4,7 @@ import input.*
 import output.*
 import java.io.File
 
+/** Try to open database by name and return it if success. Print fail reason on the other hand. */
 fun saveOpenDB(fileName: String): DB? {
     val file = File(fileName)
     return if (file.exists()) {
@@ -17,7 +18,7 @@ fun saveOpenDB(fileName: String): DB? {
     }
 }
 
-/** Write config to database and init every partition by void node*/
+/** Try to initialize new database and return it if success. Print fail reason on the other hand. */
 fun initDataBase(fileName: String, config: Config): DB? {
     val blankDB = File(fileName)
     if (blankDB.exists()) {
@@ -31,7 +32,12 @@ fun initDataBase(fileName: String, config: Config): DB? {
     if (config.defaultValue.length > config.valueSize) {
         println(Msg.ILLEGAL_FIELD_SIZE, "default")
     }
-    val db = DB(fileName, config)
+    return DB(fileName, config).also { writeInitData(it, config) }
+}
+fun initDataBase(fileName: String, options: Options): DB? = initDataBase(fileName, options.toDBConfig())
+
+/** Write config to database and init every partition by void node*/
+fun writeInitData(db: DB, config: Config) {
     db.setLength(0)
     db.writeInt(config.partitions)
     db.writeInt(config.keySize)
@@ -40,6 +46,4 @@ fun initDataBase(fileName: String, config: Config): DB? {
     repeat(config.partitions) {
         db.writeNode(Node(config, "", "", db.length(), -1))
     }
-    return db
 }
-fun initDataBase(fileName: String, options: Options): DB? = initDataBase(fileName, options.toDBConfig())

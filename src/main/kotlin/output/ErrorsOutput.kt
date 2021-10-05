@@ -1,5 +1,7 @@
 package output
 
+/** This is module to store all output messages for easy control them and reuse.*/
+
 enum class Msg {
     UNUSED_KEYS, MISSED_ARGUMENTS, FILE_NOT_EXIST, FILE_NOT_AVAILABLE, FILE_ALREADY_EXISTS, FILE_DAMAGED, ILLEGAL_FIELD_SIZE,
     KEY_WITHOUT_ARGUMENT, OPTION_REDECLARATION, TOO_SMALL_FIELDS, TOO_LARGE_DEFAULT

@@ -1,6 +1,7 @@
 package input
 import output.*
 
+/** Primary check correction of arguments. Return null if failed. */
 fun checkArgsCount(args: Array<String>): Unit? {
     if (args.size < 2) {
         println(Msg.MISSED_ARGUMENTS, listOf("mode", "DBFile")); return null
