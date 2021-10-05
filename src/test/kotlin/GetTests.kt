@@ -36,7 +36,6 @@ internal class GetTests {
 
     @Test
     fun getInDamagedFile() {
-        val damagedFileName = "$testDir/Damaged.db"
         val db = saveOpenDB(damagedFileName) ?: throw Exception("Failed create test database")
         val stream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
         db.getKeyValue("it should fail")

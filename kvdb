@@ -1,3 +1,7 @@
 #!/usr/bin/bash
 
-java -jar kvdb-kt.jar $@
+args=''
+for (( i=1; i<=$#;++i )); do
+    args+="'${!i}' "
+done
+echo $args | xargs java -jar kvdb-kt.jar 

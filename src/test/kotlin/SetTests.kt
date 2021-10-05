@@ -1,54 +1,57 @@
-import java.io.File
-import kotlin.test.*
 import DB.*
 import output.*
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.PrintStream
+import kotlin.test.*
+
 
 internal class SetTests {
-    val fileName = "$testDir/SetTests.db"
-    val config = Config(2, 10, 10, "default")
+    val envFileName = "$testDir/SetTests.db"
+    val runFileName = "$testDir/.runSetTests.db"
+    val sysOut = System.out
 
     @BeforeTest
     fun prepare() {
-        File(fileName).delete()
+        File(envFileName).copyTo(File(runFileName), true)
     }
 
     @AfterTest
     fun cleanUp() {
-        File(fileName).delete()
+        File(runFileName).delete()
+        System.setOut(sysOut)
     }
 
     @Test
-    fun singleSetInEmptyDB() {
-        val db = initDataBase(fileName, config)
+    fun singleSetNewElement() {
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        db.setKeyValue("testKey", "hey")
-        assertEquals("hey", db.getKeyValue("testKey"))
+        db.setKeyValue("hey", "you")
+        assertEquals("you", db.getKeyValue("hey"))
     }
 
     @Test
-    fun changeSetInEmptyDB() {
-        val db = initDataBase(fileName, config)
+    fun singleSetExistedElement() {
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        db.setKeyValue("testKey", "hey")
-        db.setKeyValue("testKey", "heyhey")
-        assertEquals("heyhey", db.getKeyValue("testKey"))
+        db.setKeyValue("hello", "stranger")
+        assertEquals("stranger", db.getKeyValue("hello"))
     }
 
+
     @Test
-    fun setToDefaultDB() {
-        val db = initDataBase(fileName, config)
+    fun singleSetWithSpaces() {
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        db.setKeyValue("default", config.defaultValue)
-        assertEquals(config.defaultValue.trim(), db.getKeyValue("default"))
+        db.setKeyValue(" _key ", " __value__ ")
+        assertEquals(" __value__ ", db.getKeyValue(" _key "))
     }
 
     @Test
     fun setLargeKey() {
-        val db = initDataBase(fileName, config)
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        val longKey = "longkeyxxxxxxxxxxxxxxxxxxxxxxxx"
+        val longKey = "longkey".padEnd(100)
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         db.setKeyValue(longKey, "val")
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
@@ -58,9 +61,9 @@ internal class SetTests {
 
     @Test
     fun setLargeValue() {
-        val db = initDataBase(fileName, config)
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        val longValue = "longvaluexxxxxxxxxxxxxxxxxxxxxxxx"
+        val longValue = "longvalue".padEnd(100)
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         db.setKeyValue("testKey", longValue)
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
@@ -71,15 +74,27 @@ internal class SetTests {
 
     @Test
     fun setLargeKeyAndValue() {
-        val db = initDataBase(fileName, config)
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
-        val longKey = "longkeyxxxxxxxxxxxxxxxxxxxxxxxx"
-        val longValue = "longvaluexxxxxxxxxxxxxxxxxxxxxxxx"
+        val longKey = "longkey".padEnd(100)
+        val longValue = "longvalue".padEnd(100)
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         db.setKeyValue(longKey, longValue)
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         println(Msg.ILLEGAL_FIELD_SIZE, "key")
         println(Msg.ILLEGAL_FIELD_SIZE, "value")
+        assertEquals(correctStream.toString(), stream.toString())
+    }
+
+
+    @Test
+    fun setDamagedFile() {
+        val db = saveOpenDB(damagedFileName)
+        requireNotNull(db)
+        val stream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
+        db.setKeyValue(" _key ", " __value__ ")
+        val correctStream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
+        repeat(2){println(Msg.FILE_DAMAGED, damagedFileName)}
         assertEquals(correctStream.toString(), stream.toString())
     }
 }
