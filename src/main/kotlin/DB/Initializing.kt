@@ -24,17 +24,17 @@ fun initDataBase(fileName: String, config: Config): DB? {
     if (blankDB.exists()) {
         if (blankDB.canRead() && blankDB.canWrite()) {
             println(Msg.FILE_ALREADY_EXISTS, fileName)
-            if ((readLine() ?: "n").uppercase() != "Y") return null else blankDB.delete()
+            if (getUserAnswer(Question.OVERWRITE_FILE)) blankDB.delete() else return null
         } else {
             println(Msg.FILE_NOT_AVAILABLE, fileName); return null
         }
     }
     if (config.defaultValue.length > config.valueSize) {
-        println(Msg.ILLEGAL_FIELD_SIZE, "default")
+        println(Msg.TOO_LARGE_DEFAULT); return null
     }
     return DB(fileName, config).also { writeInitData(it, config) }
 }
-fun initDataBase(fileName: String, options: Options): DB? = initDataBase(fileName, options.toDBConfig())
+fun initDataBase(fileName: String, options: Options): DB? = initDataBase(fileName, options.toDBConfig(Config()))
 
 /** Write config to database and init every partition by void node*/
 fun writeInitData(db: DB, config: Config) {

@@ -66,7 +66,7 @@ internal class RemoveTests {
         val stream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
         db.removeKey(" _key ")
         val correctStream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
-        repeat(1){println(Msg.FILE_DAMAGED, damagedFileName)}
+        println(Msg.FILE_DAMAGED, damagedFileName)
         assertEquals(correctStream.toString(), stream.toString())
     }
 }

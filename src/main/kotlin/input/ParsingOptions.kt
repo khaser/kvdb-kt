@@ -52,10 +52,3 @@ private fun parseKeysWithArgs(args: MutableList<String>): MutableMap<Option, Str
     if (dropped.isNotEmpty()) println(Msg.UNUSED_KEYS, dropped)
     return result
 }
-
-fun Options.toDBConfig() = Config(
-    this[Option.PARTITIONS]?.toInt() ?: 5000,
-    this[Option.KEYS_SIZE]?.toInt() ?: 255,
-    this[Option.VALUES_SIZE]?.toInt() ?: 255,
-    this[Option.DEFAULT_VALUE] ?: ""
-)

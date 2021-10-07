@@ -2,7 +2,7 @@ import java.io.File
 import kotlin.test.*
 import DB.*
 
-internal class IntegrityTests {
+internal class StressTests {
 
     val fileName = "$testDir/IntegrityTests.db"
 

@@ -106,7 +106,7 @@ internal class SetTests {
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         db.setKeyValue(" _key ", " __value__ ")
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
-        repeat(2) { println(Msg.FILE_DAMAGED, damagedFileName) }
+        println(Msg.FILE_DAMAGED, damagedFileName)
         assertEquals(correctStream.toString(), stream.toString())
     }
 }

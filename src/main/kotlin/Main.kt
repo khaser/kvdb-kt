@@ -62,7 +62,7 @@ fun main() {
             db.removeKey(key)
         }
         "dump" -> {
-            db.dumpAllDataBase().forEach { println("${it.first}, ${it.second}") }
+            db.dumpAllDataBase()?.forEach { println("${it.first}, ${it.second}") }
         }
         "shrink" -> {
             val newConfig = parseUserInput(args.slice(1 until args.size - 1))

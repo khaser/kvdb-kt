@@ -1,15 +1,27 @@
 import DB.*
 import input.*
-import java.io.File
+import output.*
+import java.io.*
 import kotlin.test.*
 
 internal class ShrinkTests {
 
-    val runFileName = "$testDir/.runShrinkTest"
+    val standardIn = System.`in`
+    val standartOut = System.out
+    val envFileName = "$testDir/ShrinkTest.db"
+    val runFileName = "$testDir/.runShrinkTest.db"
+
+    @BeforeTest
+    @AfterTest
+    fun streamsSetUp() {
+        System.setIn(standardIn)
+        System.setOut(standartOut)
+    }
 
     @BeforeTest
     fun setUp() {
         File(runFileName).delete()
+        File(envFileName).copyTo(File(runFileName), true)
     }
 
     @AfterTest
@@ -19,8 +31,6 @@ internal class ShrinkTests {
 
     @Test
     fun simpleTest() {
-        val fileName = "$testDir/ShrinkTest.db"
-        File(fileName).copyTo(File(runFileName), true)
         var db: DB? = saveOpenDB(runFileName)
         requireNotNull(db)
         val options: Options = mapOf(
@@ -31,14 +41,14 @@ internal class ShrinkTests {
         db = db.shrink(options)
         requireNotNull(db)
         val correct = File("$testDir/Correct.dump").readLines().toSortedSet()
-        assertEquals(correct, db.dumpAllDataBase().map{"${it.first}, ${it.second}"}.toSortedSet())
+        assertEquals(correct, db.dumpAllDataBase()?.map{"${it.first}, ${it.second}"}?.toSortedSet())
     }
 
 
     @Test
     fun emptyDB() {
-        File("$testDir/new.db").delete()
-        var db = initDataBase("$testDir/new.db", Config())
+        File(runFileName).delete()
+        var db = initDataBase(runFileName, Config())
         requireNotNull(db)
         val options: Options = mapOf(
             Option.PARTITIONS to "15",
@@ -47,24 +57,109 @@ internal class ShrinkTests {
         db = db.shrink(options)
         requireNotNull(db)
         assertEquals(listOf(), db.dumpAllDataBase())
-        File("$testDir/new.db").delete()
     }
 
     @Test
-    fun shrinkOldDefaultTooLargeNoNewDefault() {}
+    fun oldDefaultTooLargeNoNewDefault() {
+        var db = saveOpenDB(runFileName)
+        requireNotNull(db)
+
+        db = db.shrink(mapOf(Option.DEFAULT_VALUE to db.config.defaultValue.padEnd(db.config.valueSize)))
+        requireNotNull(db)
+        val options: Options = mapOf(
+            Option.PARTITIONS to "3",
+            Option.VALUES_SIZE to "24",
+        )
+        val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        db = db.shrink(options)
+        assertEquals(null, db)
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        println(Msg.TOO_LARGE_DEFAULT)
+        assertEquals(correctStream.toString(), stream.toString())
+    }
 
     @Test
-    fun shrinkOldDefaultTooLargeButNewDefaultIsGood() {}
+    fun oldDefaultTooLargeButNewDefaultIsGood() {
+        var db = saveOpenDB(runFileName)
+        requireNotNull(db)
+
+        db = db.shrink(mapOf(Option.DEFAULT_VALUE to db.config.defaultValue.padEnd(db.config.valueSize)))
+        requireNotNull(db)
+        val options: Options = mapOf(
+            Option.PARTITIONS to "3",
+            Option.VALUES_SIZE to "24",
+            Option.DEFAULT_VALUE to "khaser"
+        )
+        val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        db = db.shrink(options)
+        requireNotNull(db)
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        assertEquals(correctStream.toString(), stream.toString())
+    }
 
     @Test
-    fun shrinkOldDefaultAndNewDefaultTooLarge() {}
+    fun oldDefaultAndNewDefaultTooLarge() {
+        var db = saveOpenDB(runFileName)
+        requireNotNull(db)
+
+        db = db.shrink(mapOf(Option.DEFAULT_VALUE to db.config.defaultValue.padEnd(db.config.valueSize)))
+        requireNotNull(db)
+        val options: Options = mapOf(
+            Option.PARTITIONS to "3",
+            Option.VALUES_SIZE to "24",
+            Option.DEFAULT_VALUE to "long default".padEnd(25)
+        )
+        val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        db = db.shrink(options)
+        assertEquals(null, db)
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        println(Msg.TOO_LARGE_DEFAULT)
+        assertEquals(correctStream.toString(), stream.toString())
+    }
 
     @Test
-    fun shrinkOldDefaultIsGoodButNewDefaultTooLarge() {}
+    fun oldDefaultIsGoodButNewDefaultTooLargeUserAgree() {
+        var db = saveOpenDB(runFileName)
+        requireNotNull(db)
+
+        val options: Options = mapOf(
+            Option.PARTITIONS to "3",
+            Option.VALUES_SIZE to "24",
+            Option.DEFAULT_VALUE to "khaser".padEnd(25)
+        )
+        val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        "Y\n".byteInputStream().also { System.setIn(it) }
+        db = db.shrink(options)
+        requireNotNull(db)
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        println(Msg.TOO_LARGE_DEFAULT)
+        println(Question.USE_OLD_DEFAULT)
+        assertEquals(correctStream.toString(), stream.toString())
+    }
 
     @Test
-    fun shrinkAllEntriesTooLarge() { }
+    fun oldDefaultIsGoodButNewDefaultTooLargeUserAbourt() {
+        var db = saveOpenDB(runFileName)
+        requireNotNull(db)
+
+        val options: Options = mapOf(
+            Option.PARTITIONS to "3",
+            Option.VALUES_SIZE to "24",
+            Option.DEFAULT_VALUE to "khaser".padEnd(25)
+        )
+        val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        "n\n".byteInputStream().also { System.setIn(it) }
+        db = db.shrink(options)
+        assertEquals(null, db)
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        println(Msg.TOO_LARGE_DEFAULT)
+        println(Question.USE_OLD_DEFAULT)
+        assertEquals(correctStream.toString(), stream.toString())
+    }
 
     @Test
-    fun shrinkSomeEntriesTooLarge() { }
+    fun allEntriesTooLarge() { }
+
+    @Test
+    fun someEntriesTooLarge() { }
 }

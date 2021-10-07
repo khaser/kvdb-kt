@@ -9,7 +9,7 @@
 java -jar kvdb-kt.jar MODE [OPTIONS] DB-FILE
 Example: java -jar kvdb-kt.jar create -p 10 -v 10 new.db 
 ```
-Так же, после запуска ``./kvdb`` будет создан bash alias позволяющий запускать утилиту короткой командой. (Только Linux и MacOS)
+Так же, после запуска ``source ./kvdb`` будет создан bash alias позволяющий запускать утилиту короткой командой. (Только Linux и MacOS)
 ```sh
 kvdb MODE [OPTIONS] DB-FILE
 ```

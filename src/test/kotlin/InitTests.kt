@@ -6,7 +6,7 @@ import java.io.File
 import java.io.PrintStream
 import kotlin.test.*
 
-internal class CreateTests {
+internal class InitTests {
     private fun isFilesEqual(filenameA: String, filenameB: String) {
         val dumpA = File(filenameA).readBytes()
         val dumpB = File(filenameB).readBytes()
@@ -32,7 +32,7 @@ internal class CreateTests {
     fun defaultConfig() {
         val emptyOptions: Options = mapOf()
         val db = initDataBase(runFileName, emptyOptions)
-        assert(db != null)
+        requireNotNull(db)
         isFilesEqual("$testDir/CreateTests/DefaultConfig.db", runFileName)
     }
 
@@ -44,8 +44,23 @@ internal class CreateTests {
             Option.VALUES_SIZE to "12"
         )
         val db = initDataBase(runFileName, options)
-        assert(db != null)
+        requireNotNull(db)
         isFilesEqual("$testDir/CreateTests/CustomConfig.db", runFileName)
+    }
+
+    @Test
+    fun configWithDefaultValueOverflow() {
+        val options: Options = mapOf(
+            Option.DEFAULT_VALUE to "long default value",
+            Option.PARTITIONS to "8",
+            Option.VALUES_SIZE to "12"
+        )
+        val stream = ByteArrayOutputStream().also{System.setOut(PrintStream(it))}
+        val db = initDataBase(runFileName, options)
+        val correctStream = ByteArrayOutputStream().also{System.setOut(PrintStream(it))}
+        println(Msg.TOO_LARGE_DEFAULT)
+        assertEquals(null, db)
+        assertEquals(correctStream.toString(), stream.toString())
     }
 
     @Test
@@ -65,7 +80,7 @@ internal class CreateTests {
     }
 
     @Test
-    fun createExistedFile() {
+    fun createExistedFileUserAbort() {
         val stream = ByteArrayOutputStream().also{System.setOut(PrintStream(it))}
         val options: Options = mapOf(
             Option.DEFAULT_VALUE to "XXX",
@@ -73,10 +88,30 @@ internal class CreateTests {
             Option.VALUES_SIZE to "12"
         )
         val fileName = "$testDir/DumpTest.db"
+        "n\n".byteInputStream().also { System.setIn(it) }
         val db = initDataBase(fileName, options)
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         println(Msg.FILE_ALREADY_EXISTS, fileName)
+        println(Question.OVERWRITE_FILE)
         assertEquals(null, db)
         assertEquals(correctStream.toString().trim(), stream.toString().trim())
+    }
+
+    @Test
+    fun createExistedFileUserForce() {
+        val stream = ByteArrayOutputStream().also{System.setOut(PrintStream(it))}
+        val options: Options = mapOf(
+            Option.DEFAULT_VALUE to "XXX",
+            Option.PARTITIONS to "8",
+            Option.VALUES_SIZE to "12"
+        )
+        val fileName = "$testDir/DumpTest.db"
+        "Y\n".byteInputStream().also { System.setIn(it) }
+        val db = initDataBase(fileName, options)
+        requireNotNull(db)
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        println(Msg.FILE_ALREADY_EXISTS, fileName)
+        println(Question.OVERWRITE_FILE)
+        assertEquals(correctStream.toString(), stream.toString())
     }
 }
