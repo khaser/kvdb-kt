@@ -9,16 +9,19 @@ import java.io.PrintStream
 internal class DumpTests {
 
     val standardOut = System.out
+    val runFileName = "$testDir/.runDumpTest.db"
 
     @BeforeTest
     @AfterTest
     fun setUp() {
+        File(runFileName).delete()
         System.setOut(standardOut)
     }
 
     @Test
     fun entriesWithSpaces() {
-        val db = saveOpenDB("$testDir/DumpTest.db")
+        File("$testDir/DumpTest.db").copyTo(File(runFileName))
+        val db = saveOpenDB(runFileName)
         requireNotNull(db)
         val correct = File("$testDir/Correct.dump").readLines()
         assertEquals(correct, db.dumpAllDataBase()?.map{"${it.first}, ${it.second}"})
@@ -26,16 +29,13 @@ internal class DumpTests {
 
     @Test
     fun emptyDB() {
-        val fileName = "$testDir/.runDumpTest.db"
-        File(fileName).delete()
         val options: Options = mapOf(
             Option.PARTITIONS to "15"
         )
-        val db = initDataBase(fileName, options)
+        val db = initDataBase(runFileName, options)
         requireNotNull(db)
         assertEquals(listOf(), db.dumpAllDataBase())
         db.close()
-        File(fileName).delete()
     }
 
     @Test

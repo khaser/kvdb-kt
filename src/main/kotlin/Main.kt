@@ -1,7 +1,13 @@
 //Loop count challenge; while - 1; for - 0
-import input.parseUserInput
+import DB.initDataBase
+import DB.saveOpenDB
+import DB.shrink
 import input.checkArgsCount
-import DB.*
+import input.parseUserInput
+
+enum class Action {
+    GET, SET, REMOVE, CREATE, DUMP, SHRINK, CONFIG
+}
 
 val userManual = """
    NAME 
@@ -24,21 +30,18 @@ val userManual = """
        config - print database configuration
 """.trimIndent()
 
-//fun main(args: Array<String>) {
-fun main() {
-    val args = readLine()!!.split(' ').toTypedArray()
+fun main(args: Array<String>) {
     //Is help call check
     if (args.contains("-h") || args.contains("--help")) {
         println(userManual); return
     }
-    //Check count of arguments for every mode
-    checkArgsCount(args) ?: return
+    //Check count of arguments for every action and return action on success
+    val mode = checkArgsCount(args) ?: return
 
-    val mode = args[0]
     val fileName = args.last()
 
     //Check is file available for different actions or creating DB
-    if (mode == "create") {
+    if (mode == Action.CREATE) {
         val options = parseUserInput(args.slice(1 until args.size - 1))
         initDataBase(fileName, options)
         return
@@ -48,27 +51,27 @@ fun main() {
 
     //Different actions for each mode
     when (mode) {
-        "set" -> {
+        Action.SET -> {
             val key = args[1]
             val value = args[2]
             db.setKeyValue(key, value)
         }
-        "get" -> {
+        Action.GET -> {
             val key = args[1]
             println(db.getKeyValue(key))
         }
-        "remove" -> {
+        Action.REMOVE -> {
             val key = args[1]
             db.removeKey(key)
         }
-        "dump" -> {
+        Action.DUMP -> {
             db.dumpAllDataBase()?.forEach { println("${it.first}, ${it.second}") }
         }
-        "shrink" -> {
+        Action.SHRINK -> {
             val newConfig = parseUserInput(args.slice(1 until args.size - 1))
             db.shrink(newConfig)
         }
-        "config" -> {
+        Action.CONFIG -> {
             db.readConfig().also {
                 if (it != null) println(it.copy(defaultValue = "'" + it.defaultValue + "'"))
                 else println("Config is undefined")

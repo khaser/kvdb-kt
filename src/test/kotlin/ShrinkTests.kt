@@ -118,7 +118,7 @@ internal class ShrinkTests {
     }
 
     @Test
-    fun oldDefaultIsGoodButNewDefaultTooLargeUserAgree() {
+    fun oldDefaultIsGoodButNewDefaultTooLargeUserForce() {
         var db = saveOpenDB(runFileName)
         requireNotNull(db)
 
@@ -138,7 +138,7 @@ internal class ShrinkTests {
     }
 
     @Test
-    fun oldDefaultIsGoodButNewDefaultTooLargeUserAbourt() {
+    fun oldDefaultIsGoodButNewDefaultTooLargeUserAbort() {
         var db = saveOpenDB(runFileName)
         requireNotNull(db)
 
@@ -158,8 +158,40 @@ internal class ShrinkTests {
     }
 
     @Test
-    fun allEntriesTooLarge() { }
+    fun someEntriesTooLargeUserForce() {
+        var db = saveOpenDB(runFileName)
+        requireNotNull(db)
+        val options: Options = mapOf(
+            Option.PARTITIONS to "3",
+            Option.VALUES_SIZE to "5",
+            Option.DEFAULT_VALUE to "kh"
+        )
+        val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        "y\n".byteInputStream().also { System.setIn(it) }
+        db = db.shrink(options)
+        requireNotNull(db)
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        println(Msg.TOO_SMALL_FIELDS)
+        println(Question.DROP_SOME_ENTRIES)
+        assertEquals(correctStream.toString(), stream.toString())
+    }
 
     @Test
-    fun someEntriesTooLarge() { }
+    fun someEntriesTooLargeUserAbort() {
+        var db = saveOpenDB(runFileName)
+        requireNotNull(db)
+        val options: Options = mapOf(
+            Option.PARTITIONS to "3",
+            Option.VALUES_SIZE to "5",
+            Option.DEFAULT_VALUE to "kh"
+        )
+        val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        "n\n".byteInputStream().also { System.setIn(it) }
+        db = db.shrink(options)
+        assertEquals(null, db)
+        val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
+        println(Msg.TOO_SMALL_FIELDS)
+        println(Question.DROP_SOME_ENTRIES)
+        assertEquals(correctStream.toString(), stream.toString())
+    }
 }

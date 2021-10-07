@@ -87,11 +87,12 @@ internal class InitTests {
             Option.PARTITIONS to "8",
             Option.VALUES_SIZE to "12"
         )
-        val fileName = "$testDir/DumpTest.db"
         "n\n".byteInputStream().also { System.setIn(it) }
-        val db = initDataBase(fileName, options)
+        val fileName = "$testDir/CreateTests/Existed.db"
+        File(fileName).copyTo(File(runFileName))
+        val db = initDataBase(runFileName, options)
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
-        println(Msg.FILE_ALREADY_EXISTS, fileName)
+        println(Msg.FILE_ALREADY_EXISTS, runFileName)
         println(Question.OVERWRITE_FILE)
         assertEquals(null, db)
         assertEquals(correctStream.toString().trim(), stream.toString().trim())
@@ -105,12 +106,13 @@ internal class InitTests {
             Option.PARTITIONS to "8",
             Option.VALUES_SIZE to "12"
         )
-        val fileName = "$testDir/DumpTest.db"
         "Y\n".byteInputStream().also { System.setIn(it) }
-        val db = initDataBase(fileName, options)
+        val fileName = "$testDir/CreateTests/Existed.db"
+        File(fileName).copyTo(File(runFileName))
+        val db = initDataBase(runFileName, options)
         requireNotNull(db)
         val correctStream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
-        println(Msg.FILE_ALREADY_EXISTS, fileName)
+        println(Msg.FILE_ALREADY_EXISTS, runFileName)
         println(Question.OVERWRITE_FILE)
         assertEquals(correctStream.toString(), stream.toString())
     }

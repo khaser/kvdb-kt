@@ -1,29 +1,45 @@
 package input
+import userManual
 import output.*
+import Action
 
-/** Primary check correction of arguments. Return null if failed. */
-fun checkArgsCount(args: Array<String>): Unit? {
-    if (args.size < 2) {
-        println(Msg.MISSED_ARGUMENTS, listOf("mode", "DBFile")); return null
+/** Return list of must have arguments for action*/
+fun getSignature(mode: Action): List<String> {
+    return when (mode) {
+        Action.GET, Action.REMOVE -> listOf(mode.toString(), "key", "DBFile")
+        else -> listOf("mode", "DBFile")
     }
-    when (args[0]) {
-        "get", "remove" -> {
+}
+
+/** Primary check correction of arguments. Return Action if success. */
+fun checkArgsCount(args: Array<String>): Action? {
+    val mode = try {
+        Action.valueOf(args[0].uppercase())
+    } catch (error: Exception) {
+        println(userManual)
+        return null
+    }
+    if (args.size < 2) {
+        println(Msg.MISSED_ARGUMENTS, getSignature(mode)); return null
+    }
+    when (mode) {
+        Action.GET, Action.REMOVE -> {
             if (args.size < 3) {
-                println(Msg.MISSED_ARGUMENTS, listOf(args[0], "key", "DBFile"))
+                println(Msg.MISSED_ARGUMENTS, getSignature(mode))
                 return null
             }
             if (args.size != 3) println(Msg.UNUSED_KEYS, args.slice(2 until args.size - 1))
         }
-        "set" -> {
+        Action.SET -> {
             if (args.size < 4) {
-                println(Msg.MISSED_ARGUMENTS, listOf("set", "key", "value", "DBFile"))
+                println(Msg.MISSED_ARGUMENTS, getSignature(mode))
                 return null
             }
             if (args.size != 4) println(Msg.UNUSED_KEYS, args.slice(3 until args.size - 1))
         }
-        "config", "dump" -> {
+        Action.CONFIG, Action.DUMP -> {
             if (args.size != 2) println(Msg.UNUSED_KEYS, args.slice(1 until args.size - 1))
         }
     }
-    return Unit
+    return mode
 }
