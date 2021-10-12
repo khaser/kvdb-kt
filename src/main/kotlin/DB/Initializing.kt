@@ -5,7 +5,7 @@ import output.*
 import java.io.File
 
 /** Try to open database by name and return it if success. Print fail reason on the other hand. */
-fun saveOpenDB(fileName: String): DB? {
+fun safeOpenDB(fileName: String): DB? {
     val file = File(fileName)
     return if (file.exists()) {
         if (file.canWrite() && file.canRead()) {

@@ -1,6 +1,6 @@
 //Loop count challenge; while - 1; for - 0
 import DB.initDataBase
-import DB.saveOpenDB
+import DB.safeOpenDB
 import DB.shrink
 import input.checkArgsCount
 import input.parseUserInput
@@ -47,7 +47,7 @@ fun main(args: Array<String>) {
         return
     }
 
-    val db = saveOpenDB(fileName) ?: return
+    val db = safeOpenDB(fileName) ?: return
 
     //Different actions for each mode
     when (mode) {

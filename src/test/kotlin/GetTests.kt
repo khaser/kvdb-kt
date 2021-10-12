@@ -7,7 +7,7 @@ import java.io.PrintStream
 internal class GetTests {
     val fileName = "$testDir/GetTests.db"
 
-    val db = saveOpenDB(fileName) ?: throw Exception("Failed create test database")
+    val db = safeOpenDB(fileName) ?: throw Exception("Failed create test database")
 
     @Test
     fun singleGet() {
@@ -36,7 +36,7 @@ internal class GetTests {
 
     @Test
     fun getInDamagedFile() {
-        val db = saveOpenDB(damagedFileName) ?: throw Exception("Failed create test database")
+        val db = safeOpenDB(damagedFileName) ?: throw Exception("Failed create test database")
         val stream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
         db.getKeyValue("it should fail")
         val correctStream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}

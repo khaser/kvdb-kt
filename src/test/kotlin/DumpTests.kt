@@ -21,7 +21,7 @@ internal class DumpTests {
     @Test
     fun entriesWithSpaces() {
         File("$testDir/DumpTest.db").copyTo(File(runFileName))
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         val correct = File("$testDir/Correct.dump").readLines()
         assertEquals(correct, db.dumpAllDataBase()?.map{"${it.first}, ${it.second}"})
@@ -41,7 +41,7 @@ internal class DumpTests {
     @Test
     fun damagedDB() {
         val fileName = damagedFileName
-        val db = saveOpenDB(fileName)
+        val db = safeOpenDB(fileName)
         requireNotNull(db)
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         assertEquals(null, db.dumpAllDataBase())

@@ -1,4 +1,4 @@
-import DB.saveOpenDB
+import DB.safeOpenDB
 import output.Msg
 import output.println
 import java.io.ByteArrayOutputStream
@@ -28,7 +28,7 @@ internal class SetTests {
 
     @Test
     fun singleSetNewElement() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         db.setKeyValue("hey", "you")
         assertEquals("you", db.getKeyValue("hey"))
@@ -36,7 +36,7 @@ internal class SetTests {
 
     @Test
     fun emptyKey() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         db.setKeyValue("", "val for emp key")
         assertEquals("val for emp key", db.getKeyValue(""))
@@ -47,7 +47,7 @@ internal class SetTests {
 
     @Test
     fun singleSetExistedElement() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         db.setKeyValue("hello", "stranger")
         assertEquals("stranger", db.getKeyValue("hello"))
@@ -55,7 +55,7 @@ internal class SetTests {
 
     @Test
     fun singleSetWithSpaces() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         db.setKeyValue(" _key ", " __value__ ")
         assertEquals(" __value__ ", db.getKeyValue(" _key "))
@@ -63,7 +63,7 @@ internal class SetTests {
 
     @Test
     fun setLargeKey() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         val longKey = "longkey".padEnd(100)
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
@@ -75,7 +75,7 @@ internal class SetTests {
 
     @Test
     fun setLargeValue() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         val longValue = "longvalue".padEnd(100)
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
@@ -87,7 +87,7 @@ internal class SetTests {
 
     @Test
     fun setLargeKeyAndValue() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         val longKey = "longkey".padEnd(100)
         val longValue = "longvalue".padEnd(100)
@@ -101,7 +101,7 @@ internal class SetTests {
 
     @Test
     fun setDamagedFile() {
-        val db = saveOpenDB(damagedFileName)
+        val db = safeOpenDB(damagedFileName)
         requireNotNull(db)
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
         db.setKeyValue(" _key ", " __value__ ")

@@ -31,7 +31,7 @@ internal class ShrinkTests {
 
     @Test
     fun simpleTest() {
-        var db: DB? = saveOpenDB(runFileName)
+        var db: DB? = safeOpenDB(runFileName)
         requireNotNull(db)
         val options: Options = mapOf(
             Option.PARTITIONS to "5",
@@ -61,7 +61,7 @@ internal class ShrinkTests {
 
     @Test
     fun oldDefaultTooLargeNoNewDefault() {
-        var db = saveOpenDB(runFileName)
+        var db = safeOpenDB(runFileName)
         requireNotNull(db)
 
         db = db.shrink(mapOf(Option.DEFAULT_VALUE to db.config.defaultValue.padEnd(db.config.valueSize)))
@@ -80,7 +80,7 @@ internal class ShrinkTests {
 
     @Test
     fun oldDefaultTooLargeButNewDefaultIsGood() {
-        var db = saveOpenDB(runFileName)
+        var db = safeOpenDB(runFileName)
         requireNotNull(db)
 
         db = db.shrink(mapOf(Option.DEFAULT_VALUE to db.config.defaultValue.padEnd(db.config.valueSize)))
@@ -99,7 +99,7 @@ internal class ShrinkTests {
 
     @Test
     fun oldDefaultAndNewDefaultTooLarge() {
-        var db = saveOpenDB(runFileName)
+        var db = safeOpenDB(runFileName)
         requireNotNull(db)
 
         db = db.shrink(mapOf(Option.DEFAULT_VALUE to db.config.defaultValue.padEnd(db.config.valueSize)))
@@ -119,7 +119,7 @@ internal class ShrinkTests {
 
     @Test
     fun oldDefaultIsGoodButNewDefaultTooLargeUserForce() {
-        var db = saveOpenDB(runFileName)
+        var db = safeOpenDB(runFileName)
         requireNotNull(db)
 
         val options: Options = mapOf(
@@ -139,7 +139,7 @@ internal class ShrinkTests {
 
     @Test
     fun oldDefaultIsGoodButNewDefaultTooLargeUserAbort() {
-        var db = saveOpenDB(runFileName)
+        var db = safeOpenDB(runFileName)
         requireNotNull(db)
 
         val options: Options = mapOf(
@@ -159,7 +159,7 @@ internal class ShrinkTests {
 
     @Test
     fun someEntriesTooLargeUserForce() {
-        var db = saveOpenDB(runFileName)
+        var db = safeOpenDB(runFileName)
         requireNotNull(db)
         val options: Options = mapOf(
             Option.PARTITIONS to "3",
@@ -178,7 +178,7 @@ internal class ShrinkTests {
 
     @Test
     fun someEntriesTooLargeUserAbort() {
-        var db = saveOpenDB(runFileName)
+        var db = safeOpenDB(runFileName)
         requireNotNull(db)
         val options: Options = mapOf(
             Option.PARTITIONS to "3",

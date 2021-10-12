@@ -24,7 +24,7 @@ internal class RemoveTests {
 
     @Test
     fun removeNotExistedElement() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         db.removeKey("Not_exist")
         assertEquals(db.config.defaultValue, db.getKeyValue("Not_exist"))
@@ -32,7 +32,7 @@ internal class RemoveTests {
 
     @Test
     fun removeExistedElement() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         db.removeKey("Exist!")
         assertEquals(db.config.defaultValue, db.getKeyValue("Exist!"))
@@ -41,7 +41,7 @@ internal class RemoveTests {
 
     @Test
     fun removeWithSpaces() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         db.removeKey(" _key ")
         assertEquals(db.config.defaultValue, db.getKeyValue(" _key "))
@@ -49,7 +49,7 @@ internal class RemoveTests {
 
     @Test
     fun removeLargeKey() {
-        val db = saveOpenDB(runFileName)
+        val db = safeOpenDB(runFileName)
         requireNotNull(db)
         val longKey = "longkey".padEnd(100)
         val stream = ByteArrayOutputStream().also { System.setOut(PrintStream(it)) }
@@ -61,7 +61,7 @@ internal class RemoveTests {
 
     @Test
     fun removeDamagedFile() {
-        val db = saveOpenDB(damagedFileName)
+        val db = safeOpenDB(damagedFileName)
         requireNotNull(db)
         val stream = ByteArrayOutputStream().also {System.setOut(PrintStream(it))}
         db.removeKey(" _key ")
